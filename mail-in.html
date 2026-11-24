@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mail-in ECM Tuning · Stagline — how to remove, pack &amp; ship your GM ECM</title>
+<meta name="description" content="Mail-in LS tuning for Gen IV E38 ECMs. How to remove your ECM, pack it, when to ship, what to include, turnaround times, and how to reinstall it. Insured return shipping included.">
+<link rel="canonical" href="https://datbluepony.github.io/green-hornet-tuner/mail-in.html">
+<meta name="theme-color" content="#070906">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Stagline">
+<meta property="og:title" content="Mail-in ECM tuning · Stagline">
+<meta property="og:description" content="Ship your E38 ECM, we flash your approved tune and send it back. Remove, pack and ship guide included.">
+<meta property="og:url" content="https://datbluepony.github.io/green-hornet-tuner/mail-in.html">
+<meta property="og:image" content="https://datbluepony.github.io/green-hornet-tuner/assets/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Saira:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"How to send your GM E38 ECM for a mail-in tune","totalTime":"P7D",
+"step":[{"@type":"HowToStep","name":"Order and fill in the intake form"},{"@type":"HowToStep","name":"Disconnect the battery and remove the ECM"},{"@type":"HowToStep","name":"Pack the ECM in an anti-static bag with padding"},{"@type":"HowToStep","name":"Ship Monday to Wednesday with tracking and insurance"},{"@type":"HowToStep","name":"We read, back up, flash and verify the ECM"},{"@type":"HowToStep","name":"Reinstall the ECM and let the idle relearn"}]}
+</script>
+<style>
+  .flow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); }
+  .flow > div { padding: 22px 18px; border-left: 1px solid var(--line); display: grid; gap: 8px; align-content: start; position: relative; }
+  .flow > div:first-child { border-left: 0; }
+  .flow .n { font-family: var(--mono); font-size: .72rem; color: var(--accent); letter-spacing: .1em; }
+  .flow b { font-family: var(--display); font-size: 1.02rem; font-weight: 650; }
+  .flow p { font-size: .82rem; color: var(--text-2); line-height: 1.5; }
+  .flow .who { font-family: var(--mono); font-size: .64rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); }
+  .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .day { border-radius: 12px; border: 1px solid var(--line); background: var(--surface); padding: 12px; display: grid; gap: 6px; min-height: 96px; align-content: start; }
+  .day .d { font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; color: var(--text-3); }
+  .day .tag { font-size: .74rem; font-weight: 650; padding: 3px 8px; border-radius: 6px; width: max-content; max-width: 100%; }
+  .tag.ship { background: var(--accent-soft); color: var(--accent); }
+  .tag.transit { background: rgba(57,135,229,.14); color: #86b6ef; }
+  .tag.bench { background: var(--amber-soft); color: var(--amber); }
+  .tag.none { background: rgba(255,255,255,.04); color: var(--text-3); }
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .steps-list { display: grid; gap: 0; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+  .steps-list li { list-style: none; padding: 16px 20px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 30px 1fr; gap: 12px; }
+  .steps-list li:first-child { border-top: 0; }
+  .steps-list .i { font-family: var(--mono); color: var(--accent); font-size: .8rem; padding-top: 2px; }
+  .steps-list b { display: block; margin-bottom: 2px; }
+  .steps-list span { color: var(--text-2); font-size: .9rem; }
+  .form { display: grid; gap: 16px; padding: 28px; }
+  .form .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .goals { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .slip { font-family: var(--mono); font-size: .8rem; white-space: pre-wrap; background: #060805; border: 1px solid var(--line-2); border-radius: 12px; padding: 18px; color: var(--text-2); max-height: 420px; overflow: auto; }
+  @media (max-width: 1100px) { .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } .flow > div { border-left: 0; border-top: 1px solid var(--line); } .flow > div:nth-child(-n+2) { border-top: 0; } .flow > div:nth-child(even) { border-left: 1px solid var(--line); } }
+  @media (max-width: 800px) { .two, .form .row2, .form .row3, .goals { grid-template-columns: 1fr; } .week { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media print { .nav, .footer, .page-hero, section:not(#order), .no-print { display: none !important; } body { background: #fff; color: #000; } .slip { color: #000; background: #fff; border-color: #000; max-height: none; } }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div data-nav></div>
+<main id="main">
+  <section class="page-hero">
+    <div class="grid-bg"></div>
+    <div class="container">
+      <span class="eyebrow">Mail-in ECM service</span>
+      <h1 style="font-size:clamp(2.4rem,5vw,4rem);max-width:20ch">No flash tool? Send us the computer.</h1>
+      <p class="lede">Build and approve your tune in the Studio, pull the ECM, and ship it to us. We back up your stock calibration, flash your approved tune, verify it and send it back insured. Most trucks are only down for about a week.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <a class="btn btn-primary btn-lg" href="#order">Start an order</a>
+        <a class="btn btn-ghost btn-lg" href="builder.html#idle">Build the tune first</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="container" style="display:grid;gap:64px">
+      <div class="reveal">
+        <div class="section-head" style="margin-bottom:28px"><span class="eyebrow">The process</span><h2 style="font-size:clamp(1.8rem,3vw,2.6rem)">Seven steps, start to finish.</h2></div>
+        <div class="flow">
+          <div><span class="n">01</span><span class="who">You</span><b>Build &amp; approve</b><p>Shape the tune in the Studio, run the simulator and approve it as a mail-in package.</p></div>
+          <div><span class="n">02</span><span class="who">You</span><b>Order &amp; intake</b><p>Pay, fill in the intake form below and print the packing slip.</p></div>
+          <div><span class="n">03</span><span class="who">You</span><b>Remove the ECM</b><p>Battery off, unplug two connectors, unbolt the module. About 20 minutes.</p></div>
+          <div><span class="n">04</span><span class="who">You</span><b>Pack &amp; ship</b><p>Anti-static bag, padding, slip inside. Ship Monday–Wednesday, tracked and insured.</p></div>
+          <div><span class="n">05</span><span class="who">Us</span><b>Read &amp; back up</b><p>We read your stock calibration, fingerprint it and store a copy before touching anything.</p></div>
+          <div><span class="n">06</span><span class="who">Us</span><b>Flash &amp; verify</b><p>We bench-write your approved tune, verify checksums and confirm the module boots.</p></div>
+          <div><span class="n">07</span><span class="who">Both</span><b>Return &amp; relearn</b><p>Insured return shipping. Reinstall, idle 3 minutes untouched, then log a drive.</p></div>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="section-head" style="margin-bottom:28px"><span class="eyebrow">Shipping window</span><h2 style="font-size:clamp(1.8rem,3vw,2.6rem)">When to ship, and how long you're down.</h2>
+          <p class="lede" id="window-copy">Ship Monday–Wednesday so your ECM doesn't sit in a carrier hub over the weekend. We receive Monday–Thursday and turn most units around in 1–2 business days.</p></div>
+        <div class="week" aria-label="Typical week">
+          <div class="day"><span class="d">MON</span><span class="tag ship">You ship</span></div>
+          <div class="day"><span class="d">TUE</span><span class="tag transit">In transit</span></div>
+          <div class="day"><span class="d">WED</span><span class="tag bench">We receive · read · flash</span></div>
+          <div class="day"><span class="d">THU</span><span class="tag bench">Verify · ship back</span></div>
+          <div class="day"><span class="d">FRI</span><span class="tag transit">Return transit</span></div>
+          <div class="day"><span class="d">SAT</span><span class="tag transit">Return transit</span></div>
+          <div class="day"><span class="d">SUN</span><span class="tag none">No delivery</span></div>
+        </div>
+        <p class="dim" style="font-size:.85rem;margin-top:14px">Typical total downtime is 5–8 days with Priority or 2-day service each way. Express both ways can cut that to 3–4 days. Don't ship Thursday or Friday, and avoid holiday weeks.</p>
+      </div>
+
+      <div class="two reveal">
+        <div style="display:grid;gap:16px">
+          <div class="section-head" style="margin-bottom:0"><span class="eyebrow">Removal</span><h2 style="font-size:clamp(1.6rem,2.6vw,2.2rem)">Pulling a Gen IV E38</h2></div>
+          <ol class="steps-list" style="margin:0;padding:0">
+            <li><span class="i">1</span><div><b>Key off, battery negative off.</b><span>Wait 5 minutes. Never unplug an ECM with the battery connected.</span></div></li>
+            <li><span class="i">2</span><div><b>Find the ECM.</b><span>On 2007–2013 GM trucks it's usually in the engine bay on the driver side, toward the front. In a swap (like a Wrangler), it's wherever the harness builder mounted it. Check your service manual.</span></div></li>
+            <li><span class="i">3</span><div><b>Unplug both connectors.</b><span>Slide or lift each locking lever and pull straight out. Don't pry on the pins. Tape a plastic bag over each harness plug to keep it clean and dry.</span></div></li>
+            <li><span class="i">4</span><div><b>Unbolt the module.</b><span>Remove the bracket bolts and keep the hardware in a labeled bag at home. Only the ECM gets shipped.</span></div></li>
+            <li><span class="i">5</span><div><b>Photo the label.</b><span>Snap the sticker with the part and service numbers and attach it to your intake form.</span></div></li>
+          </ol>
+        </div>
+        <div style="display:grid;gap:16px">
+          <div class="section-head" style="margin-bottom:0"><span class="eyebrow">Packing</span><h2 style="font-size:clamp(1.6rem,2.6vw,2.2rem)">What goes in the box</h2></div>
+          <ol class="steps-list" style="margin:0;padding:0">
+            <li><span class="i">✓</span><div><b>ECM in an anti-static bag.</b><span>A clean zip bag is fine if that's all you have. No loose foam peanuts against the connectors.</span></div></li>
+            <li><span class="i">✓</span><div><b>Two inches of padding all around.</b><span>Bubble wrap in a sturdy box. Ship nothing loose: no brackets, no harness.</span></div></li>
+            <li><span class="i">✓</span><div><b>Printed packing slip.</b><span>Generated below. It has your order ID, return address and tune checksum.</span></div></li>
+            <li><span class="i">✓</span><div><b>Tracking + insurance.</b><span>Insure for the ECM's replacement value (around $300–$500). Email us the tracking number.</span></div></li>
+            <li><span class="i">✕</span><div><b>Don't include</b><span>Keys, the vehicle's harness, payment or anything you need back besides the ECM.</span></div></li>
+          </ol>
+          <div class="callout info" id="shipto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8 12 3 3 8v8l9 5 9-5V8z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg><span>The shipping address is sent with your order confirmation.</span></div>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <div class="section-head" style="margin-bottom:28px"><span class="eyebrow">Getting it back</span><h2 style="font-size:clamp(1.8rem,3vw,2.6rem)">Reinstall &amp; relearn</h2></div>
+        <div class="steps-list" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr))" role="list">
+          <div role="listitem" style="padding:20px;display:grid;gap:6px"><b>Bolt in &amp; plug in</b><span class="muted" style="font-size:.88rem">Connectors fully seated, levers locked. Battery negative on last.</span></div>
+          <div role="listitem" style="padding:20px;display:grid;gap:6px;border-left:1px solid var(--line)"><b>Key on, 30 seconds</b><span class="muted" style="font-size:.88rem">Let the module wake, then start. Don't touch the pedal.</span></div>
+          <div role="listitem" style="padding:20px;display:grid;gap:6px;border-left:1px solid var(--line)"><b>Idle 3 minutes</b><span class="muted" style="font-size:.88rem">Lets idle airflow relearn. A rough first minute is normal.</span></div>
+          <div role="listitem" style="padding:20px;display:grid;gap:6px;border-left:1px solid var(--line)"><b>Crank, no start?</b><span class="muted" style="font-size:.88rem">Check battery and connectors first. GM trucks may need the anti-theft relearn: key ON 10 minutes, OFF 5 seconds, then start.</span></div>
+        </div>
+      </div>
+
+      <section id="order" class="reveal" style="scroll-margin-top:90px">
+        <div class="section-head" style="margin-bottom:28px"><span class="eyebrow">Order</span><h2 style="font-size:clamp(1.8rem,3vw,2.6rem)">Intake form &amp; packing slip</h2>
+          <p class="lede">Pay first, then fill this in. It builds your packing slip. Attach the tune package you approved in the Studio (Review &amp; write → Mail-in).</p></div>
+        <div class="two">
+          <form class="card form" id="intake" novalidate>
+            <div class="row2">
+              <div class="field"><label for="f-name">Full name</label><input class="input" id="f-name" required autocomplete="name"></div>
+              <div class="field"><label for="f-email">Email</label><input class="input" id="f-email" type="email" required autocomplete="email"></div>
+            </div>
+            <div class="row3">
+              <div class="field"><label for="f-year">Engine donor year</label><input class="input" id="f-year" placeholder="2009"></div>
+              <div class="field"><label for="f-engine">Engine</label><input class="input" id="f-engine" placeholder="5.3L LY5"></div>
+              <div class="field"><label for="f-ecm">ECM</label><select class="select" id="f-ecm"><option>E38</option><option>Other / not sure</option></select></div>
+            </div>
+            <div class="row2">
+              <div class="field"><label for="f-vehicle">Vehicle it's in</label><input class="input" id="f-vehicle" placeholder="Jeep Wrangler swap"></div>
+              <div class="field"><label for="f-cam">Cam (brand / specs)</label><input class="input" id="f-cam" placeholder="Stage 3 truck cam 224/232 112"></div>
+            </div>
+            <div class="row3">
+              <div class="field"><label for="f-fuel">Fuel</label><select class="select" id="f-fuel"><option>93</option><option>91</option><option>89</option><option>87</option><option>E85</option></select></div>
+              <div class="field"><label for="f-trans">Transmission</label><select class="select" id="f-trans"><option>4L60E</option><option>4L80E</option><option>6L80E</option><option>Manual</option></select></div>
+              <div class="field"><label for="f-exh">Exhaust</label><select class="select" id="f-exh"><option>Open headers</option><option>Headers + mufflers</option><option>Stock manifolds</option></select></div>
+            </div>
+            <div class="field"><span class="label">Goals</span>
+              <div class="goals">
+                <label class="check"><input type="checkbox" value="More lope"> <span>More aggressive lope</span></label>
+                <label class="check"><input type="checkbox" value="Clean starts"> <span>Clean hot &amp; cold starts</span></label>
+                <label class="check"><input type="checkbox" value="No stalling"> <span>No stalling in gear</span></label>
+                <label class="check"><input type="checkbox" value="Fuel trims"> <span>Fix fuel trims</span></label>
+              </div></div>
+            <div class="field"><label for="f-mods">Other mods &amp; notes</label><textarea class="input" id="f-mods" rows="3" placeholder="Injectors, intake, gears, tire size, anything we should know"></textarea></div>
+            <div class="field"><label for="f-return">Return shipping address</label><textarea class="input" id="f-return" rows="3" required autocomplete="street-address"></textarea></div>
+            <div class="field"><label for="f-pkg">Approved tune package (.json from the Studio)</label><input class="input" id="f-pkg" type="file" accept=".json" style="padding:9px 12px;height:auto"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-ghost" type="button" data-checkout="mailin">Pay for mail-in</button>
+              <button class="btn btn-primary" type="submit">Create packing slip</button>
+            </div>
+            <p class="dim" style="font-size:.78rem">Creating a slip asks you to sign the mail-in waiver if you haven't already. Your details stay in your browser unless an order system is connected.</p>
+          </form>
+          <div style="display:grid;gap:12px;align-content:start">
+            <div class="slip" id="slip" aria-live="polite">Your packing slip will appear here.</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap" class="no-print">
+              <button class="btn btn-ghost btn-sm" id="print" disabled>Print slip</button>
+              <button class="btn btn-ghost btn-sm" id="dl" disabled>Download slip</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+</main>
+<div data-footer></div>
+<script type="module" src="assets/js/site.js"></script>
+<script type="module">
+  import { CONFIG } from "./assets/js/config.js";
+  import { requireWaiver, toast } from "./assets/js/site.js";
+  const m = CONFIG.mailIn;
+  document.getElementById("window-copy").textContent = `${m.shipBy} We receive ${m.receivingDays} and turn most units around in ${m.turnaround}. Return: ${m.returnShipping}.`;
+  if (m.shipTo) document.querySelector("#shipto span").innerHTML = `<strong>Ship to:</strong><br>${m.shipTo.map((l) => l.replace(/[<>&]/g, "")).join("<br>")}`;
+  const f = document.getElementById("intake"), slip = document.getElementById("slip");
+  let text = "";
+  f.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const v = (id) => document.getElementById(id).value.trim();
+    const missing = ["f-name", "f-email", "f-return"].filter((id) => !v(id));
+    if (missing.length) { toast("Fill in your name, email and return address.", "warn"); document.getElementById(missing[0]).focus(); return; }
+    const w = await requireWaiver({ reason: "Mail-in ECM service" });
+    if (!w) return;
+    let pkg = null;
+    const file = document.getElementById("f-pkg").files[0];
+    if (file) { try { pkg = JSON.parse(await file.text()); } catch { toast("That tune package couldn't be read. You can email it instead.", "warn"); } }
+    const id = "SL-" + Date.now().toString(36).toUpperCase().slice(-6);
+    const goals = [...f.querySelectorAll(".goals input:checked")].map((x) => x.value).join(", ") || "Not specified";
+    text = [
+      `${CONFIG.brand.toUpperCase()} · MAIL-IN PACKING SLIP`, "=".repeat(44),
+      `Order ID:      ${id}`, `Date:          ${new Date().toLocaleDateString()}`, `Waiver:        ${w.id} (${w.name})`, "",
+      `Customer:      ${v("f-name")}`, `Email:         ${v("f-email")}`, "",
+      `Engine:        ${v("f-year")} ${v("f-engine")} · ${v("f-ecm")}`, `Vehicle:       ${v("f-vehicle")}`, `Cam:           ${v("f-cam")}`,
+      `Fuel / trans:  ${v("f-fuel")} · ${v("f-trans")} · ${v("f-exh")}`, `Goals:         ${goals}`, `Notes:         ${v("f-mods") || "—"}`, "",
+      `Tune package:  ${pkg ? `${pkg.state?.project?.name || "project"} · checksum ${pkg.checksum}` : "Not attached (email it with your order ID)"}`, "",
+      "RETURN TO:", v("f-return"), "",
+      "IN THE BOX: ECM only, in an anti-static bag, padded. Nothing else.",
+      `SHIP: ${m.shipBy}`,
+    ].join("\n");
+    slip.textContent = text;
+    document.getElementById("print").disabled = false; document.getElementById("dl").disabled = false;
+    if (CONFIG.formEndpoint) {
+      try { await fetch(CONFIG.formEndpoint, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ type: "mailin", orderId: id, slip: text, package: pkg }) }); toast(`Order ${id} sent. Check your email for the shipping address.`); }
+      catch { toast("Slip created, but the order couldn't be sent. Email it to us with your order ID.", "warn"); }
+    } else toast(`Packing slip ${id} created.`);
+  });
+  document.getElementById("print").addEventListener("click", () => window.print());
+  document.getElementById("dl").addEventListener("click", () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" })); a.download = "stagline-packing-slip.txt"; a.click(); });
+</script>
+</body>
+</html>

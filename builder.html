@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tune Studio · Stagline — build, simulate &amp; review your LS tune</title>
+<meta name="description" content="The Stagline Tune Studio: idle and cam-lope calibration, 3D VE and spark tables, a drive-cycle tune simulator, Bluetooth OBD2 diagnostics, log analysis with recommendations, automatic backups and an approval-gated write flow.">
+<link rel="canonical" href="https://datbluepony.github.io/green-hornet-tuner/builder.html">
+<meta name="theme-color" content="#070906">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stagline">
+<meta property="og:title" content="Stagline Tune Studio">
+<meta property="og:description" content="Build, simulate and review a guardrailed LS tune in your browser.">
+<meta property="og:url" content="https://datbluepony.github.io/green-hornet-tuner/builder.html">
+<meta property="og:image" content="https://datbluepony.github.io/green-hornet-tuner/assets/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Saira:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+<link rel="stylesheet" href="assets/css/studio.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+</head>
+<body class="studio">
+<div class="app" id="app">
+  <aside class="rail" id="rail" aria-label="Studio navigation"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <main class="view" id="view" tabindex="-1"><div class="view-inner"><div class="empty-state">Loading the Studio…</div></div></main>
+  </div>
+</div>
+<noscript><div style="padding:40px;text-align:center">The Tune Studio needs JavaScript.</div></noscript>
+<script type="module" src="assets/js/studio/app.js"></script>
+</body>
+</html>

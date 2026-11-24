@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LS Tuning Hardware Cost Estimator · Stagline</title>
+<meta name="description" content="Estimate what you need to tune a GM LS engine: flash tool, Bluetooth OBD2 adapter, wideband O2 and battery maintainer. Compare DIY, mail-in and logging-only costs against a shop tune.">
+<link rel="canonical" href="https://datbluepony.github.io/green-hornet-tuner/hardware.html">
+<meta name="theme-color" content="#070906">
+<meta property="og:type" content="website"><meta property="og:site_name" content="Stagline">
+<meta property="og:title" content="LS tuning hardware estimator · Stagline">
+<meta property="og:description" content="What does it really cost to tune your LS? Build your list and compare.">
+<meta property="og:url" content="https://datbluepony.github.io/green-hornet-tuner/hardware.html">
+<meta property="og:image" content="https://datbluepony.github.io/green-hornet-tuner/assets/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Saira:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+<style>
+  .est { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); gap: 24px; align-items: start; }
+  .group { padding: 22px 24px; border-top: 1px solid var(--line); display: grid; gap: 12px; }
+  .group:first-child { border-top: 0; }
+  .group h3 { font-size: 1.05rem; display: flex; gap: 10px; align-items: baseline; }
+  .group h3 small { font-family: var(--mono); font-size: .66rem; letter-spacing: .1em; color: var(--text-3); font-weight: 500; text-transform: uppercase; }
+  .opt { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border: 1px solid var(--line-2); border-radius: 12px; cursor: pointer; transition: all .15s; background: var(--bg-2); }
+  .opt:hover { border-color: var(--line-3); }
+  .opt:has(input:checked) { border-color: rgba(200,245,60,.55); background: var(--accent-soft); }
+  .opt input { appearance: none; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line-3); margin: 0; display: grid; place-items: center; }
+  .opt input[type=checkbox] { border-radius: 5px; }
+  .opt input:checked { border-color: var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--bg-2); }
+  .opt input[type=checkbox]:checked { box-shadow: none; }
+  .opt b { font-weight: 600; font-size: .93rem; display: block; }
+  .opt span { font-size: .8rem; color: var(--text-3); }
+  .opt .p { font-family: var(--mono); font-size: .9rem; color: var(--text); font-variant-numeric: tabular-nums; }
+  .total { position: sticky; top: 92px; padding: 26px; display: grid; gap: 16px; }
+  .total .big { font-family: var(--display); font-size: 3rem; font-weight: 700; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .lines { display: grid; gap: 8px; font-size: .88rem; }
+  .lines div { display: flex; justify-content: space-between; gap: 10px; color: var(--text-2); }
+  .lines div b { font-family: var(--mono); font-weight: 500; color: var(--text); }
+  .cmp { display: grid; gap: 8px; }
+  .cmp .row { display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items: center; font-size: .8rem; color: var(--text-2); }
+  .cmp .bar { height: 10px; border-radius: 4px; background: var(--surface-4); overflow: hidden; }
+  .cmp .bar i { display: block; height: 100%; border-radius: 4px; }
+  .cmp .row b { font-family: var(--mono); font-weight: 500; color: var(--text); }
+  @media (max-width: 960px) { .est { grid-template-columns: 1fr; } .total { position: static; } }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div data-nav></div>
+<main id="main">
+  <section class="page-hero">
+    <div class="grid-bg"></div>
+    <div class="container">
+      <span class="eyebrow">Hardware estimator</span>
+      <h1 style="font-size:clamp(2.4rem,5vw,4rem);max-width:20ch">What it really costs to tune your LS.</h1>
+      <p class="lede">Pick how you want to do it and what you already own. The total updates as you go. Prices are typical street prices and change often, so check before you buy.</p>
+    </div>
+  </section>
+  <section class="section" style="padding-top:0">
+    <div class="container est">
+      <div class="card" id="opts">
+        <div class="group">
+          <h3>How will the tune get written? <small>Path</small></h3>
+          <div class="seg" role="group" aria-label="Path" style="width:max-content;max-width:100%;flex-wrap:wrap">
+            <button data-path="mailin" aria-pressed="true">Mail-in</button>
+            <button data-path="diy" aria-pressed="false">DIY flash</button>
+            <button data-path="log" aria-pressed="false">Diagnose &amp; log only</button>
+          </div>
+          <p class="dim" style="font-size:.85rem" id="path-note"></p>
+        </div>
+        <div class="group" data-for="diy">
+          <h3>Flash tool <small>Required for DIY</small></h3>
+          <label class="opt"><input type="radio" name="flash" value="500" checked><div><b>HP Tuners MPVI3 + vehicle credits</b><span>The most common LS tool. E38 needs credits to license the vehicle.</span></div><span class="p">≈ $500</span></label>
+          <label class="opt"><input type="radio" name="flash" value="800"><div><b>EFILive FlashScan V3</b><span>Pro-grade, strong GM support, includes VIN licenses.</span></div><span class="p">≈ $800</span></label>
+          <label class="opt"><input type="radio" name="flash" value="0"><div><b>I already own one</b><span>Your existing tool and licenses.</span></div><span class="p">$0</span></label>
+        </div>
+        <div class="group">
+          <h3>Logging &amp; diagnostics adapter <small>For the Studio's Bluetooth tests</small></h3>
+          <label class="opt"><input type="radio" name="obd" value="30"><div><b>Budget BLE ELM327</b><span>Vgate iCar Pro BLE or similar. Fine for idle tests.</span></div><span class="p">≈ $30</span></label>
+          <label class="opt"><input type="radio" name="obd" value="80" checked><div><b>OBDLink CX (Bluetooth LE)</b><span>Faster and more reliable. Recommended.</span></div><span class="p">≈ $80</span></label>
+          <label class="opt"><input type="radio" name="obd" value="50"><div><b>OBDLink SX (USB)</b><span>Wired and reliable, laptop only.</span></div><span class="p">≈ $50</span></label>
+          <label class="opt"><input type="radio" name="obd" value="0"><div><b>Use my flash tool / already own one</b><span>Upload its CSV logs instead.</span></div><span class="p">$0</span></label>
+        </div>
+        <div class="group">
+          <h3>Wideband O2 <small>Strongly recommended for fuel work</small></h3>
+          <label class="opt"><input type="checkbox" name="wb" value="200" checked><div><b>AEM X-Series wideband kit</b><span>Real air/fuel under load. Essential before touching WOT fueling.</span></div><span class="p">≈ $200</span></label>
+          <label class="opt"><input type="checkbox" name="wb" value="60"><div><b>Bung welded / installed</b><span>Shop labor if you can't weld. Mount it away from the open header tips.</span></div><span class="p">≈ $60</span></label>
+        </div>
+        <div class="group">
+          <h3>Essentials</h3>
+          <label class="opt" data-for="diy"><input type="checkbox" name="ess" value="60" checked><div><b>Battery maintainer (10 A+)</b><span>Keeps voltage steady during a write. Don't flash without one.</span></div><span class="p">≈ $60</span></label>
+          <label class="opt" data-for="diy log"><input type="checkbox" name="ess" value="250"><div><b>Refurbished Windows laptop</b><span>Only if you don't have one. HP Tuners and EFILive run on Windows.</span></div><span class="p">≈ $250</span></label>
+          <label class="opt" data-for="mailin"><input type="checkbox" name="ess" value="35" checked><div><b>Box, anti-static bag &amp; insured shipping to us</b><span>Return shipping is included in the mail-in price.</span></div><span class="p">≈ $35</span></label>
+        </div>
+      </div>
+      <aside class="card total" aria-live="polite">
+        <span class="eyebrow">Your estimate</span>
+        <div class="big" id="total">$0</div>
+        <div class="lines" id="lines"></div>
+        <div class="divider"></div>
+        <div class="cmp" id="cmp"></div>
+        <a class="btn btn-primary" href="pricing.html">See plans</a>
+        <p class="dim" style="font-size:.74rem">Estimates only, in USD. Not affiliated with any brand listed. We may add affiliate links later and will label them.</p>
+      </aside>
+    </div>
+  </section>
+</main>
+<div data-footer></div>
+<script type="module" src="assets/js/site.js"></script>
+<script type="module">
+  import { CONFIG } from "./assets/js/config.js";
+  let path = "mailin";
+  const notes = {
+    mailin: "No flash tool needed. You build the tune here, ship the ECM, we write it.",
+    diy: "You'll flash the approved change sheet yourself with HP Tuners or EFILive.",
+    log: "Just the Studio's free diagnostics and simulator, with a cheap adapter.",
+  };
+  const $ = (s) => document.querySelector(s);
+  function calc() {
+    document.querySelectorAll("[data-path]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.path === path)));
+    document.querySelectorAll("[data-for]").forEach((el) => { const on = el.dataset.for.split(" ").includes(path); el.hidden = !on; });
+    $("#path-note").textContent = notes[path];
+    const val = (sel) => [...document.querySelectorAll(sel)].filter((i) => i.checked && !i.closest("[hidden]")).reduce((s, i) => s + +i.value, 0);
+    const flash = path === "diy" ? val("[name=flash]") : 0;
+    const obd = val("[name=obd]"), wb = val("[name=wb]"), ess = val("[name=ess]");
+    const plan = path === "mailin" ? CONFIG.pricing.mailin : path === "diy" ? CONFIG.pricing.street : 0;
+    const total = flash + obd + wb + ess + plan;
+    $("#total").textContent = `$${total.toLocaleString()}`;
+    const rows = [["Flash tool", flash, path === "diy"], ["OBD2 adapter", obd, true], ["Wideband", wb, true], ["Essentials", ess, true], [path === "mailin" ? "Mail-in tune" : path === "diy" ? "Street plan" : "Explorer plan", plan, true]];
+    $("#lines").innerHTML = rows.filter((r) => r[2]).map(([n, v]) => `<div><span>${n}</span><b>${v ? "$" + v.toLocaleString() : "$0"}</b></div>`).join("");
+    const cmp = [["You", total, "var(--accent)"], ["Mail-order", 475, "var(--s1)"], ["Shop dyno", 900, "var(--s2)"]];
+    const max = Math.max(...cmp.map((c) => c[1]), 1);
+    $("#cmp").innerHTML = `<span class="k mono dim" style="font-size:.66rem;letter-spacing:.12em">VS. TYPICAL TUNE COST</span>` + cmp.map(([n, v, c]) => `<div class="row"><span>${n}</span><div class="bar"><i style="width:${(v / max) * 100}%;background:${c}"></i></div><b>$${v.toLocaleString()}</b></div>`).join("") + `<span class="dim" style="font-size:.72rem">Mail-order and shop figures are midpoints of typical ranges, tune only. You keep the tools.</span>`;
+  }
+  document.querySelectorAll("[data-path]").forEach((b) => b.addEventListener("click", () => { path = b.dataset.path; calc(); }));
+  document.getElementById("opts").addEventListener("change", calc);
+  calc();
+</script>
+</body>
+</html>

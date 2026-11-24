@@ -1,0 +1,14 @@
+{
+  "name": "Stagline LS Tune Studio",
+  "short_name": "Stagline",
+  "description": "Guardrailed tuning studio for GM LS engines.",
+  "start_url": "./builder.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#070906",
+  "theme_color": "#070906",
+  "icons": [
+    { "src": "assets/img/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "assets/img/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

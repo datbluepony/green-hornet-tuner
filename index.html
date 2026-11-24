@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stagline · LS Tune Studio — cam lope, idle &amp; fuel tuning for GM LS engines</title>
+<meta name="description" content="Tune your GM LS engine with guardrails. Dial in cam lope without hurting startability, edit fuel and spark maps in 3D, simulate a drive cycle, run Bluetooth OBD2 diagnostics and approve every ECU write yourself.">
+<meta name="keywords" content="LS tuning, cam lope tune, LS idle tune, Gen IV 5.3 tune, E38 tuning, Silverado 5.3 cam tune, LS swap tune, VE table, spark table, OBD2 Bluetooth diagnostics, mail-in ECM tune">
+<link rel="canonical" href="https://datbluepony.github.io/green-hornet-tuner/">
+<meta name="theme-color" content="#070906">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stagline">
+<meta property="og:title" content="Stagline · LS Tune Studio">
+<meta property="og:description" content="Dial in the lope. Keep the manners. Guardrailed tuning, 3D maps, drive-cycle simulation and Bluetooth diagnostics for GM LS engines.">
+<meta property="og:url" content="https://datbluepony.github.io/green-hornet-tuner/">
+<meta property="og:image" content="https://datbluepony.github.io/green-hornet-tuner/assets/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Stagline · LS Tune Studio">
+<meta name="twitter:description" content="Dial in the lope. Keep the manners. Guardrailed LS tuning in your browser.">
+<meta name="twitter:image" content="https://datbluepony.github.io/green-hornet-tuner/assets/img/og.png">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Saira:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {"@type": "Organization", "name": "Stagline", "url": "https://datbluepony.github.io/green-hornet-tuner/", "logo": "https://datbluepony.github.io/green-hornet-tuner/assets/img/favicon.svg"},
+    {"@type": "SoftwareApplication", "name": "Stagline LS Tune Studio", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Web browser",
+     "description": "Guardrailed calibration studio for GM LS engines: idle and cam lope tuning, 3D fuel and spark maps, drive-cycle simulation, data-log analysis and Bluetooth OBD2 diagnostics.",
+     "offers": [
+       {"@type": "Offer", "name": "Explorer", "price": "0", "priceCurrency": "USD"},
+       {"@type": "Offer", "name": "Street", "price": "119", "priceCurrency": "USD"},
+       {"@type": "Offer", "name": "Mail-in tune", "price": "249", "priceCurrency": "USD"},
+       {"@type": "Offer", "name": "Advanced", "price": "299", "priceCurrency": "USD"}
+     ]}
+  ]
+}
+</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+<style>
+  /* Layout: split hero (copy | live 3D instrument), then a full-bleed
+     "Lope Lab" console, then a bento of capabilities. */
+  .hero { position: relative; overflow: hidden; padding: clamp(48px, 7vw, 96px) 0 clamp(56px, 7vw, 90px); }
+  .hero .glow.a { width: 620px; height: 620px; background: radial-gradient(circle, rgba(200,245,60,.22), transparent 65%); right: -140px; top: -180px; }
+  .hero .glow.b { width: 520px; height: 520px; background: radial-gradient(circle, rgba(57,135,229,.18), transparent 65%); left: -220px; bottom: -260px; }
+  .hero-grid > *, .lab > *, .safety > * { min-width: 0; }
+  .hero-grid { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: clamp(32px, 5vw, 64px); align-items: center; }
+  .hero-copy { display: grid; gap: 26px; }
+  .hero h1 { font-size: clamp(2.8rem, 6.4vw, 5.4rem); line-height: .98; }
+  .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+  .hero-meta { display: flex; gap: 22px; flex-wrap: wrap; color: var(--text-3); font-size: .85rem; }
+  .hero-meta span { display: inline-flex; gap: 8px; align-items: center; }
+  .hero-meta svg { width: 16px; height: 16px; color: var(--accent); }
+
+  .instrument { position: relative; aspect-ratio: 1.12; max-width: 100%; border-radius: var(--r-xl); border: 1px solid var(--line-2);
+    background: radial-gradient(120% 80% at 50% 0%, rgba(200,245,60,.07), transparent 60%), linear-gradient(180deg, #11150f, #0a0c09);
+    box-shadow: var(--shadow-2), 0 0 0 1px rgba(0,0,0,.6); overflow: hidden; }
+  .instrument .s3d { position: absolute; inset: 44px 0 0 0; }
+  .instrument-bar { position: absolute; top: 0; left: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: .72rem; color: var(--text-3); letter-spacing: .06em; background: rgba(0,0,0,.25); }
+  .instrument-bar b { color: var(--text-2); font-weight: 500; }
+  .instrument-bar .lights { display: flex; gap: 6px; margin-right: 6px; }
+  .instrument-bar .lights i { width: 9px; height: 9px; border-radius: 50%; background: var(--surface-4); }
+  .hud { position: absolute; z-index: 2; padding: 12px 14px; border-radius: 14px; background: rgba(12, 15, 11, .78); border: 1px solid var(--line-2); backdrop-filter: blur(10px); box-shadow: 0 16px 40px -10px rgba(0,0,0,.7); }
+  .hud .k { font-family: var(--mono); font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--text-3); }
+  .hud .v { font-family: var(--display); font-weight: 700; font-size: 1.5rem; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .hud .v small { font-size: .8rem; color: var(--text-3); font-weight: 500; margin-left: 4px; }
+  .hud.h1 { left: 16px; bottom: 16px; }
+  .hud.h2 { right: 16px; top: 60px; }
+  .hud.h3 { right: 16px; bottom: 16px; display: flex; gap: 10px; align-items: center; }
+  .hud.h3 .ok { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: rgba(12,163,12,.16); color: var(--good-text); }
+  .hud.h3 .ok svg { width: 16px; height: 16px; }
+  .s3d-labels { position: absolute; inset: 0; pointer-events: none; }
+  .s3d-label { position: absolute; left: 0; top: 0; font-family: var(--mono); font-size: .66rem; color: var(--text-3); white-space: nowrap; }
+  .s3d-label.axis { color: var(--text-2); letter-spacing: .08em; text-transform: uppercase; font-size: .62rem; }
+
+  .proof { border-block: 1px solid var(--line); background: var(--bg-2); }
+  .proof .container { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .proof-item { padding: 22px 20px; display: grid; gap: 4px; border-left: 1px solid var(--line); }
+  .proof-item:first-child { border-left: 0; }
+  .proof-item b { font-family: var(--display); font-size: 1.05rem; font-weight: 650; }
+  .proof-item span { color: var(--text-3); font-size: .85rem; }
+
+  /* Lope Lab */
+  .lab { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); border-radius: var(--r-xl); overflow: hidden; border: 1px solid var(--line-2); background: var(--surface); box-shadow: var(--shadow-2); }
+  .lab-scope { position: relative; min-height: 420px; background: #080a07; border-right: 1px solid var(--line); display: grid; grid-template-rows: auto 1fr auto; }
+  .lab-top { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .play { width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; box-shadow: 0 0 0 6px rgba(200,245,60,.12), 0 10px 30px -6px var(--accent-glow); transition: transform .2s var(--ease); }
+  .play:hover { transform: scale(1.05); }
+  .play svg { width: 20px; height: 20px; fill: currentColor; }
+  .lab-top .t { display: grid; gap: 2px; }
+  .lab-top .t b { font-family: var(--display); font-size: 1.05rem; }
+  .lab-top .t span { font-size: .8rem; color: var(--text-3); }
+  .lab-top .seg { margin-left: auto; }
+  #lope-canvas { width: 100%; height: 100%; min-height: 260px; }
+  .lab-readouts { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
+  .lab-readouts div { padding: 14px 18px; border-left: 1px solid var(--line); display: grid; gap: 2px; }
+  .lab-readouts div:first-child { border-left: 0; }
+  .lab-readouts .k { font-family: var(--mono); font-size: .64rem; letter-spacing: .12em; color: var(--text-3); text-transform: uppercase; }
+  .lab-readouts .v { font-family: var(--mono); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+  .lab-ctrl { padding: 26px; display: grid; gap: 22px; align-content: start; }
+  .presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .preset { text-align: left; padding: 12px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--bg-2); transition: all .2s; display: grid; gap: 2px; }
+  .preset b { font-size: .9rem; }
+  .preset span { font-size: .74rem; color: var(--text-3); line-height: 1.35; }
+  .preset:hover { border-color: var(--line-3); }
+  .preset[aria-pressed="true"] { border-color: rgba(200,245,60,.6); background: var(--accent-soft); }
+  .big-slider { display: grid; gap: 8px; }
+  .big-slider .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .big-slider .val { font-family: var(--display); font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .params { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .param { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 14px; border-top: 1px solid var(--line); font-size: .86rem; }
+  .param:first-child { border-top: 0; }
+  .param .n { color: var(--text-2); }
+  .param .v { font-family: var(--mono); color: var(--text); text-align: right; font-variant-numeric: tabular-nums; }
+  .param .d { grid-column: 1 / -1; font-size: .74rem; color: var(--text-3); }
+
+  /* bento */
+  .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+  .bento .card { padding: 26px; display: grid; gap: 12px; align-content: start; overflow: hidden; }
+  .bento .span-3 { grid-column: span 3; } .bento .span-2 { grid-column: span 2; } .bento .span-4 { grid-column: span 4; }
+  .fi { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(200,245,60,.2); }
+  .fi svg { width: 20px; height: 20px; }
+  .bento h3 { font-size: 1.15rem; }
+  .bento p { color: var(--text-2); font-size: .93rem; }
+  .mini { margin-top: 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); padding: 14px; font-family: var(--mono); font-size: .76rem; color: var(--text-2); display: grid; gap: 6px; }
+  .mini .ok { color: var(--good-text); } .mini .w { color: var(--warn); }
+  .mini .row { display: flex; justify-content: space-between; gap: 10px; }
+  .heat { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; margin-top: 8px; }
+  .heat i { aspect-ratio: 1; border-radius: 3px; }
+
+  /* steps */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; counter-reset: s; }
+  .step { padding: 26px; border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--surface); display: grid; gap: 10px; align-content: start; position: relative; }
+  .step::before { counter-increment: s; content: "0" counter(s); font-family: var(--mono); font-size: .8rem; color: var(--accent); letter-spacing: .1em; }
+  .step h3 { font-size: 1.1rem; } .step p { color: var(--text-2); font-size: .92rem; }
+
+  .safety { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+  .lock-list { display: grid; gap: 10px; }
+  .lock { display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+  .lock svg { width: 18px; height: 18px; color: var(--text-3); flex: none; }
+  .lock b { font-weight: 600; font-size: .95rem; } .lock span { color: var(--text-3); font-size: .82rem; margin-left: auto; text-align: right; }
+
+  .plans { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .plan { padding: 24px; display: grid; gap: 10px; align-content: start; }
+  .plan .price { font-family: var(--display); font-size: 2.2rem; font-weight: 700; }
+  .plan .price small { font-size: .85rem; color: var(--text-3); font-weight: 500; }
+  .plan.featured { border-color: rgba(200,245,60,.45); background: linear-gradient(180deg, rgba(200,245,60,.07), transparent 40%), var(--surface); }
+
+  .faq { display: grid; gap: 10px; max-width: 860px; margin-inline: auto; }
+  .faq details { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+  .faq summary { cursor: pointer; padding: 18px 20px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; font-family: var(--mono); color: var(--accent); font-size: 1.2rem; line-height: 1; }
+  .faq details[open] summary::after { content: "–"; }
+  .faq details p { padding: 0 20px 18px; color: var(--text-2); }
+
+  .final { text-align: center; padding: clamp(56px, 8vw, 96px) 24px; border-radius: var(--r-xl); border: 1px solid var(--line-2); position: relative; overflow: hidden;
+    background: radial-gradient(80% 120% at 50% 0%, rgba(200,245,60,.14), transparent 60%), var(--surface); display: grid; gap: 22px; justify-items: center; }
+
+  @media (max-width: 1000px) {
+    .hero-grid, .lab, .safety { grid-template-columns: minmax(0, 1fr); }
+    .lab-scope { border-right: 0; border-bottom: 1px solid var(--line); }
+    .bento .span-3, .bento .span-2, .bento .span-4 { grid-column: span 6; }
+    .steps, .plans { grid-template-columns: 1fr 1fr; }
+    .proof .container { grid-template-columns: 1fr 1fr; }
+    .proof-item:nth-child(3) { border-left: 0; }
+  }
+  @media (max-width: 600px) {
+    .steps, .plans, .presets { grid-template-columns: 1fr; }
+    .lab-readouts { grid-template-columns: 1fr 1fr; }
+    .lab-readouts div:nth-child(3) { border-left: 0; }
+    .instrument { aspect-ratio: .95; }
+    .hud.h2 { display: none; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div data-nav></div>
+
+<main id="main">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="grid-bg"></div>
+    <div class="glow a"></div><div class="glow b"></div>
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <span class="badge badge-accent" style="width:max-content"><span class="dot pulse"></span> Public preview · Gen IV E38 trucks</span>
+        <h1><span class="gradient-text">Dial in the lope.</span><br><span class="accent-text">Keep the manners.</span></h1>
+        <p class="lede">Stagline is a tune studio for GM LS engines. Shape a cam idle, edit fuel and spark in 3D, run a simulated drive cycle, then approve every write yourself. Every change stays inside guardrails.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary btn-lg" href="builder.html">Open the Tune Studio
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          <a class="btn btn-ghost btn-lg" href="#lope-lab">Hear the lope</a>
+        </div>
+        <div class="hero-meta">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/></svg> Manual approval before every write</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg> Automatic stock backups</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg> Bluetooth OBD2, read-only</span>
+        </div>
+      </div>
+
+      <div class="instrument" aria-label="Live preview of a volumetric efficiency table in 3D">
+        <div class="instrument-bar"><span class="lights"><i></i><i></i><i></i></span> <b>VE_MAIN</b> · RPM × MAP · %VE <span style="margin-left:auto">Drag to orbit</span></div>
+        <div class="s3d" id="hero-3d"></div>
+        <div class="hud h2"><div class="k">Idle target · P/N</div><div class="v"><span id="hud-rpm">800</span><small>rpm</small></div></div>
+        <div class="hud h1"><div class="k">Lope intensity</div><div class="v"><span id="hud-lope">58</span><small>%</small></div></div>
+        <div class="hud h3"><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12 5 5L20 7"/></svg></span><div><div class="k">Checksum</div><div class="mono" style="font-size:.85rem">Valid · 0x7E3A</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="proof">
+    <div class="container">
+      <div class="proof-item"><b>Locked start-up tables</b><span>Cranking &amp; cold-start fuel stay stock</span></div>
+      <div class="proof-item"><b>Two-tier guardrails</b><span>Street and Advanced limits per table</span></div>
+      <div class="proof-item"><b>Drive-cycle simulator</b><span>Start, idle, cruise and WOT, scored</span></div>
+      <div class="proof-item"><b>Mail-in option</b><span>Ship your ECM, we flash it</span></div>
+    </div>
+  </div>
+
+  <!-- LOPE LAB -->
+  <section class="section" id="lope-lab">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Lope Lab</span>
+        <h2>Chop at idle. Clean starts. Easy in gear.</h2>
+        <p class="lede">A cam's overlap creates the lope. The tune decides how much of it you hear. Stagline shapes idle spark, idle stability correction and target RPM inside a safe band, and leaves the cranking and cold-start tables alone so the truck still fires right up.</p>
+      </div>
+
+      <div class="lab reveal">
+        <div class="lab-scope">
+          <div class="lab-top">
+            <button class="play" id="lab-play" aria-label="Play engine sound"><svg viewBox="0 0 24 24"><path d="M7 5v14l12-7L7 5z"/></svg></button>
+            <div class="t"><b>Stage 3 truck cam · open headers</b><span id="lab-status">Press play. Headphones recommended.</span></div>
+            <div class="seg" role="group" aria-label="Exhaust">
+              <button aria-pressed="true" data-exh="open">Open headers</button>
+              <button aria-pressed="false" data-exh="muffled">Muffled</button>
+            </div>
+          </div>
+          <canvas id="lope-canvas" aria-label="Idle RPM trace"></canvas>
+          <div class="lab-readouts">
+            <div><span class="k">Idle</span><span class="v" id="r-rpm">800 ±30</span></div>
+            <div><span class="k">Vacuum</span><span class="v" id="r-map">47 kPa</span></div>
+            <div><span class="k">Startability</span><span class="v" id="r-start">100</span></div>
+            <div><span class="k">Stall margin</span><span class="v" id="r-stall">High</span></div>
+          </div>
+        </div>
+        <div class="lab-ctrl">
+          <div class="presets" role="group" aria-label="Lope presets">
+            <button class="preset" data-preset="smooth" aria-pressed="false"><b>Smooth</b><span>Quiet, stock-like</span></button>
+            <button class="preset" data-preset="mild" aria-pressed="false"><b>Mild chop</b><span>Noticeable rhythm</span></button>
+            <button class="preset" data-preset="aggressive" aria-pressed="true"><b>Aggressive</b><span>Strong, still safe</span></button>
+          </div>
+          <div class="big-slider">
+            <div class="row"><label class="label" for="lab-lope">Lope intensity</label><span class="val" id="lab-lope-val">58%</span></div>
+            <input id="lab-lope" class="range" type="range" min="0" max="100" value="66">
+            <div class="row dim" style="font-size:.75rem"><span>Smooth</span><span>Street safe band ends at 100</span></div>
+          </div>
+          <div class="params" id="lab-params"></div>
+          <a class="btn btn-ghost" href="builder.html#idle">Fine-tune every parameter in the Studio
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </div>
+      <p class="dim" style="font-size:.78rem;margin-top:12px">The sound is a procedural approximation for comparing settings, not a recording. Real results depend on the cam, exhaust and engine condition.</p>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">The Studio</span>
+        <h2>Everything a careful tune needs. Nothing that gets you in trouble.</h2>
+      </div>
+      <div class="bento">
+        <article class="card span-4 reveal">
+          <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17 9 11l4 4 8-8"/><path d="M3 21h18"/></svg></div>
+          <h3>Interactive 3D fuel &amp; ignition maps</h3>
+          <p>Orbit the VE and spark tables, click cells on the surface or the grid, then nudge, set, smooth or blend. Switch the color mode to show every change against stock.</p>
+          <div class="heat" id="mini-heat" aria-hidden="true"></div>
+        </article>
+        <article class="card span-2 reveal" data-delay="1">
+          <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 2"/></svg></div>
+          <h3>Adjustable idle calibration</h3>
+          <p>Target RPM in park and in gear, idle spark, stability correction, airflow and fueling, each with plain-English notes and a safe band.</p>
+        </article>
+        <article class="card span-2 reveal">
+          <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg></div>
+          <h3>Bluetooth OBD2 diagnostics</h3>
+          <p>Pair a BLE ELM327 dongle in Chrome or Edge. Run an idle or driving test and get a plain report: safe to do, needs attention, not recommended.</p>
+        </article>
+        <article class="card span-2 reveal" data-delay="1">
+          <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 20V9"/></svg></div>
+          <h3>Automatic log analysis</h3>
+          <p>Upload a CSV from HP Tuners, EFILive or Torque. Fuel trims are binned by RPM and load, knock is flagged, idle stability is scored.</p>
+        </article>
+        <article class="card span-2 reveal" data-delay="2">
+          <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg></div>
+          <h3>Assisted recommendations</h3>
+          <p>The assistant turns your logs into staged VE and spark corrections. Each one explains why and stays clamped to your plan's limits.</p>
+        </article>
+        <article class="card span-3 reveal">
+          <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3z"/><path d="m9 12 2 2 4-4"/></svg></div>
+          <h3>Checksum validation &amp; ECU recovery</h3>
+          <p>Every calibration is fingerprinted. The write flow verifies size, structure and checksum, and keeps a recovery path to your stock file one click away.</p>
+          <div class="mini" aria-hidden="true">
+            <div class="row"><span>File size · 2,097,152 B</span><span class="ok">PASS</span></div>
+            <div class="row"><span>CRC-32 · 0x9C41_7E3A</span><span class="ok">PASS</span></div>
+            <div class="row"><span>Stock backup present</span><span class="ok">PASS</span></div>
+            <div class="row"><span>Battery ≥ 12.4 V</span><span class="w">CHECK</span></div>
+          </div>
+        </article>
+        <article class="card span-3 reveal" data-delay="1">
+          <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+          <h3>Manual approval before every write</h3>
+          <p>No silent flashes. You see the full change list, confirm the safety checklist and type <span class="mono" style="color:var(--text)">WRITE</span>. Automatic backups snapshot every edit, so any version can be restored.</p>
+          <div class="mini" aria-hidden="true">
+            <div class="row"><span>Changes staged</span><span>14 cells · 5 params</span></div>
+            <div class="row"><span>Guardrails</span><span class="ok">All within Street limits</span></div>
+            <div class="row"><span>Approval</span><span class="w">Awaiting you</span></div>
+          </div>
+        </article>
+        <article class="card span-6 reveal">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center">
+            <div style="display:grid;gap:10px">
+              <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>
+              <h3>A tune simulator that drives the cycle for you</h3>
+              <p>Crank, cold start, warm idle, drop into Drive with the A/C on, cruise, a wide-open pull and decel. Stagline predicts RPM, air/fuel, spark and knock risk across the cycle and scores startability, stall margin, cruise fueling and WOT safety before you write anything.</p>
+            </div>
+            <a class="btn btn-primary" href="builder.html#sim">Run the simulator</a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW -->
+  <section class="section" style="padding-top:0">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">How it works</span>
+        <h2>From stock file to approved tune in four steps.</h2>
+      </div>
+      <div class="steps">
+        <div class="step reveal"><h3>Connect &amp; diagnose</h3><p>Pair a Bluetooth dongle or upload a data log. Stagline checks trims, vacuum, voltage and codes, and tells you if the engine is ready to tune.</p></div>
+        <div class="step reveal" data-delay="1"><h3>Back up stock</h3><p>Upload your stock read. It's fingerprinted and stored as your recovery point before any edit.</p></div>
+        <div class="step reveal" data-delay="2"><h3>Build &amp; simulate</h3><p>Shape the idle, adjust maps, run the drive cycle. Each change shows what it does and where its limits are.</p></div>
+        <div class="step reveal" data-delay="3"><h3>Review &amp; write</h3><p>Approve the change list and export it for your flash tool, or ship us your ECM and we write it for you.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SAFETY -->
+  <section class="section" style="padding-top:0">
+    <div class="container safety">
+      <div class="section-head reveal" style="margin:0">
+        <span class="eyebrow">Guardrails</span>
+        <h2>Small changes, made on purpose.</h2>
+        <p class="lede">Stagline is built for the 10% that makes a truck feel finished: idle, lope, trims and a careful degree of timing. The tables that decide whether your engine starts, or survives, stay locked.</p>
+        <a class="btn btn-ghost" href="legal.html#disclaimer" style="width:max-content">Read the safety disclaimer</a>
+      </div>
+      <div class="lock-list reveal" data-delay="1">
+        <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><b>Cranking &amp; cold-start fuel</b><span>Locked · protects startability</span></div>
+        <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><b>Emissions monitors &amp; diagnostics</b><span>Locked · never disabled</span></div>
+        <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><b>Knock sensor gain &amp; retard</b><span>Locked · your engine's safety net</span></div>
+        <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18"/></svg><b>VE edits</b><span>±5% Street · ±12% Advanced</span></div>
+        <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18"/></svg><b>Spark edits</b><span>−4°/+1° Street · −8°/+3° Advanced</span></div>
+        <div class="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18"/></svg><b>Idle target</b><span>725–925 rpm Street</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING TEASER -->
+  <section class="section" style="padding-top:0" id="plans">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Plans</span>
+        <h2>A shop-quality idle tune for a fraction of the invoice.</h2>
+        <p class="lede">A local cam tune usually runs $400–$900. Pick the level of control you're comfortable with.</p>
+      </div>
+      <div class="plans">
+        <div class="card plan reveal"><span class="badge">Explorer</span><div class="price" data-price="explorer">Free</div><p class="muted" style="font-size:.9rem">Simulator, Lope Lab, 3D map viewer, Bluetooth diagnostics.</p></div>
+        <div class="card plan featured reveal" data-delay="1"><span class="badge badge-accent">Street</span><div class="price"><span data-price="street">$119</span> <small>/ vehicle</small></div><p class="muted" style="font-size:.9rem">Idle &amp; lope, mild fuel and spark, change-sheet export, log assistant.</p></div>
+        <div class="card plan reveal" data-delay="2"><span class="badge">Mail-in</span><div class="price"><span data-price="mailin">$249</span> <small>/ tune</small></div><p class="muted" style="font-size:.9rem">Ship your ECM, we flash it and ship it back. One revision included.</p></div>
+        <div class="card plan reveal" data-delay="3"><span class="badge badge-warn">Advanced</span><div class="price"><span data-price="advanced">$299</span> <small>/ vehicle</small></div><p class="muted" style="font-size:.9rem">Wider limits for experienced tuners. Signed waiver required.</p></div>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:28px"><a class="btn btn-ghost" href="pricing.html">Compare plans in detail</a></div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section" style="padding-top:0">
+    <div class="container">
+      <div class="section-head center reveal"><span class="eyebrow">Questions</span><h2>Straight answers.</h2></div>
+      <div class="faq reveal">
+        <details><summary>Will a lope tune hurt how my truck starts or drives?</summary><p>It shouldn't, if the cranking and cold-start tables stay stock and the in-gear idle keeps enough RPM and spark reserve. Stagline locks the start-up tables and the simulator scores stall margin when you drop into Drive with the A/C on. If a setting pushes the score down, you'll see it before anything is written.</p></details>
+        <details><summary>Can I get lope from a stock cam?</summary><p>Only a little. Lope comes from valve overlap. Idle tuning can make an existing cam sound more aggressive, but it can't create overlap that isn't there. The Lab shows this: switch to a stock cam in the Studio and the lope ceiling drops.</p></details>
+        <details><summary>Does Stagline write to my ECU directly?</summary><p>Not yet. In the preview you export an approved change sheet and apply it with a licensed flash tool (HP Tuners, EFILive), or use the mail-in service. Bluetooth OBD2 is read-only and can't change anything in the vehicle.</p></details>
+        <details><summary>Which vehicles are supported?</summary><p>2007–2013 GM trucks with Gen IV 4.8, 5.3, 6.0 and 6.2 engines on the E38 ECM are in preview, including LS swaps that use those ECMs. Gen III P01/P59 support is planned.</p></details>
+        <details><summary>Who's responsible if something goes wrong?</summary><p>You are. Stagline is experimental software and every write needs your approval. Advanced features and the mail-in service require a signed assumption-of-risk agreement. See the <a href="legal.html" style="color:var(--accent)">terms</a>.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0">
+    <div class="container">
+      <div class="final reveal">
+        <div class="grid-bg"></div>
+        <span class="eyebrow" style="position:relative">Ready when you are</span>
+        <h2 style="position:relative;max-width:18ch">Open the Studio. Nothing gets written until you say so.</h2>
+        <div class="hero-ctas" style="position:relative;justify-content:center">
+          <a class="btn btn-primary btn-lg" href="builder.html">Open the Tune Studio</a>
+          <a class="btn btn-ghost btn-lg" href="mail-in.html">How mail-in works</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div data-footer></div>
+
+<script type="module" src="assets/js/site.js"></script>
+<script type="module" src="assets/js/landing.js"></script>
+</body>
+</html>

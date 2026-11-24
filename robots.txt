@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://datbluepony.github.io/green-hornet-tuner/sitemap.xml

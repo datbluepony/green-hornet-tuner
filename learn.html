@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Learn LS Tuning · Cam lope, idle tuning, fuel trims &amp; knock — Stagline</title>
+<meta name="description" content="Plain-English guides to LS tuning: how cam lope works, the six idle tuning levers, open headers and O2 reversion, reading fuel trims, why spark timing is dangerous, and Gen IV E38 notes.">
+<link rel="canonical" href="https://datbluepony.github.io/green-hornet-tuner/learn.html">
+<meta name="theme-color" content="#070906">
+<meta property="og:type" content="article"><meta property="og:site_name" content="Stagline">
+<meta property="og:title" content="Learn LS tuning · Stagline">
+<meta property="og:description" content="How cam lope works, idle tuning levers, fuel trims, knock and Gen IV notes, in plain English.">
+<meta property="og:url" content="https://datbluepony.github.io/green-hornet-tuner/learn.html">
+<meta property="og:image" content="https://datbluepony.github.io/green-hornet-tuner/assets/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Saira:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/site.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"Can a tune make my cam lope more without hurting starts?","acceptedAnswer":{"@type":"Answer","text":"Yes, within limits. Lowering idle spark and reducing idle spark stability correction lets the cam's natural overlap show, while leaving cranking and cold-start tables stock keeps starts clean."}},
+{"@type":"Question","name":"Can I get lope from a stock LS cam?","acceptedAnswer":{"@type":"Answer","text":"Only a little. Lope comes from valve overlap, and stock Gen IV cams have very little. A tune can bring out a cam's lope but cannot create overlap."}},
+{"@type":"Question","name":"Do open headers affect fuel trims?","acceptedAnswer":{"@type":"Answer","text":"Often. Open headers can pull outside air back toward the O2 sensors between exhaust pulses (reversion), making them read lean so the ECM adds fuel. Check this before correcting VE."}},
+{"@type":"Question","name":"Is it safe to add spark timing?","acceptedAnswer":{"@type":"Answer","text":"Adding high-load timing without knock data is the most common way to damage an engine. Removing timing is always the safe direction."}}
+]}
+</script>
+<style>
+  .learn { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 56px; align-items: start; }
+  .toc { position: sticky; top: 96px; display: grid; gap: 4px; }
+  .toc a { padding: 7px 12px; border-radius: 8px; color: var(--text-2); font-size: .88rem; border-left: 2px solid var(--line); }
+  .toc a:hover { color: var(--text); border-left-color: var(--accent); background: rgba(255,255,255,.03); }
+  .levers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+  .lever { padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); display: grid; gap: 6px; }
+  .lever b { color: var(--text); font-family: var(--display); }
+  .lever span { font-size: .9rem; line-height: 1.55; }
+  .glossary { display: grid; grid-template-columns: 180px 1fr; gap: 10px 24px; margin: 16px 0; }
+  .glossary dt { font-family: var(--mono); font-size: .84rem; color: var(--text); }
+  .glossary dd { margin: 0; font-size: .92rem; }
+  .faq details { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); margin-bottom: 10px; }
+  .faq summary { cursor: pointer; padding: 16px 18px; font-weight: 600; color: var(--text); list-style: none; }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq details p { padding: 0 18px 16px; margin: 0; }
+  @media (max-width: 900px) { .learn { grid-template-columns: 1fr; } .toc { position: static; grid-template-columns: 1fr 1fr; } .levers, .glossary { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div data-nav></div>
+<main id="main">
+  <section class="page-hero">
+    <div class="grid-bg"></div>
+    <div class="container">
+      <span class="eyebrow">Learn</span>
+      <h1 style="font-size:clamp(2.4rem,5vw,4rem);max-width:20ch">Understand the change before you make it.</h1>
+      <p class="lede">Short, plain-English guides to the tables Stagline lets you touch, and why it locks the others.</p>
+    </div>
+  </section>
+  <section class="section" style="padding-top:0">
+    <div class="container learn">
+      <nav class="toc" aria-label="On this page">
+        <a href="#lope">How cam lope works</a>
+        <a href="#levers">The six idle levers</a>
+        <a href="#headers">Open headers &amp; O2 reversion</a>
+        <a href="#trims">Reading fuel trims</a>
+        <a href="#knock">Spark &amp; knock</a>
+        <a href="#gen4">Gen IV E38 notes</a>
+        <a href="#glossary">Glossary</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <article class="prose">
+        <h2 id="lope" style="margin-top:0">How cam lope works</h2>
+        <p>Lope is the uneven, choppy idle you hear from a performance cam. It comes from <strong>valve overlap</strong>: the few degrees when the intake and exhaust valves are both open at the top of the exhaust stroke. At idle, with little airflow and low manifold pressure, exhaust gas gets pulled back into the intake during that overlap. Some cylinders get a diluted charge and burn lazily, and the next few burn harder. That repeating weak-strong pattern is the lope.</p>
+        <p>You can estimate overlap from the cam card: <code>overlap = (intake duration + exhaust duration) ÷ 2 − 2 × lobe separation</code>, using the .050" numbers. A stock 5.3L sits around −40°. A typical stage 3 truck cam sits slightly positive. Bigger overlap means more potential lope.</p>
+        <div class="callout info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/></svg><span><strong>The tune doesn't create lope. It decides how much of it the ECM smooths away.</strong> A stock ECM works hard to make any engine idle smoothly. A lope tune relaxes that effort inside a safe band.</span></div>
+
+        <h2 id="levers">The six idle levers</h2>
+        <p>Stagline's Idle &amp; lope page exposes exactly these, each with a recommended band and a hard limit:</p>
+        <div class="levers">
+          <div class="lever"><b>Idle target · P/N</b><span>Lower RPM slows the firing rhythm so each pulse is heavier. Too low and a big cam can't pull clean vacuum.</span></div>
+          <div class="lever"><b>Idle target · in gear</b><span>Where most of the stall margin lives. Kept 40–60 rpm under P/N so the converter load doesn't drag it down.</span></div>
+          <div class="lever"><b>Idle spark</b><span>The main lope lever. Less timing gives a lazier burn and more chop. Below ~14° exhaust heat rises and there's less timing in reserve.</span></div>
+          <div class="lever"><b>Spark stability correction</b><span>How aggressively the ECM uses timing to catch each dip. Turning it down lets the cam's rhythm through.</span></div>
+          <div class="lever"><b>Idle airflow</b><span>A little extra base air helps a low-vacuum cam idle and restart. Removing air raises stall risk.</span></div>
+          <div class="lever"><b>Idle fueling</b><span>Slightly richer keeps the chop crisp and helps with reversion. More than ~3% only wastes fuel.</span></div>
+        </div>
+        <p>What Stagline <strong>doesn't</strong> touch: cranking fuel, cold-start and after-start enrichment, and startup airflow (beyond your airflow trim). That's how a lope tune keeps startability. The engine starts on the same tables it always did.</p>
+
+        <h2 id="headers">Open headers &amp; O2 reversion</h2>
+        <p>With open headers, every exhaust pulse is followed by a low-pressure moment that can pull outside air back up the collector. If the O2 sensors sit close to the tips, they see that fresh air and read <strong>lean</strong>, so the ECM adds fuel and positive fuel trims appear even when the engine isn't actually lean.</p>
+        <ul>
+          <li>Mount O2 sensors and any wideband as far upstream as practical, ideally 12" or more from the open end.</li>
+          <li>Short collector extensions or a turndown often cure reversion without hurting the sound.</li>
+          <li>Before trusting idle VE corrections from a log, check whether trims are higher at idle than at cruise. That pattern suggests reversion.</li>
+        </ul>
+        <p>Stagline's diagnostics and log assistant flag this automatically when your project is set to open headers.</p>
+
+        <h2 id="trims">Reading fuel trims</h2>
+        <p>Short-term (STFT) and long-term (LTFT) fuel trims show how much the ECM corrects the fuel it calculated from the VE table. Add them for the total correction on each bank.</p>
+        <ul>
+          <li><strong>Within ±5%:</strong> healthy. No VE work needed for an idle tune.</li>
+          <li><strong>±5–10%:</strong> a VE error, or a small leak. Worth correcting in steps.</li>
+          <li><strong>Beyond ±10%:</strong> fix the cause first: a vacuum leak, an injector, the MAF, or reversion. Don't add lope on top of a lean idle.</li>
+          <li><strong>Banks disagree by 6%+:</strong> look for a problem on one side, such as an exhaust leak or an injector.</li>
+        </ul>
+
+        <h2 id="knock">Spark &amp; knock</h2>
+        <p>Spark timing makes power until it makes knock: uncontrolled combustion that hammers pistons and rings. The ECM's knock sensors pull timing when they hear it, but they can't catch everything, and standard OBD2 can't even read GM knock retard.</p>
+        <div class="callout crit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 21h20L12 3z"/><path d="M12 10v5M12 18h.01"/></svg><span><strong>Removing timing is always the safe direction.</strong> Adding high-load timing without a knock-retard log from a full scan tool is the most common way people hurt engines. That's why Street limits allow only +1°.</span></div>
+
+        <h2 id="gen4">Gen IV E38 notes</h2>
+        <ul>
+          <li><strong>AFM / DoD:</strong> most cam swaps disable Active Fuel Management, and many remove the hardware. Set this correctly in your project.</li>
+          <li><strong>VVT:</strong> some Gen IV truck engines have cam phasing. Many aftermarket cams are built for a locked phaser. Follow your cam supplier's instructions.</li>
+          <li><strong>Idle relearn:</strong> after any write, let the engine idle 3 minutes untouched so idle airflow adapts.</li>
+          <li><strong>Swaps:</strong> a Gen IV in a Jeep, an older truck or a hot rod still runs its E38 tune. Make sure the vehicle speed, tire size and transmission settings match the new chassis.</li>
+        </ul>
+
+        <h2 id="glossary">Glossary</h2>
+        <dl class="glossary">
+          <dt>VE</dt><dd>Volumetric efficiency: how well the engine fills its cylinders at a given RPM and pressure. The basis of fuel delivery.</dd>
+          <dt>MAP</dt><dd>Manifold absolute pressure, in kPa. Lower means more vacuum. Atmosphere is about 100 kPa.</dd>
+          <dt>LSA</dt><dd>Lobe separation angle, in cam degrees. Tighter LSA means more overlap and more lope.</dd>
+          <dt>AFR / λ</dt><dd>Air/fuel ratio. 14.7:1 (λ 1.0) is stoichiometric for gasoline. Wide-open throttle typically targets about 12.7:1.</dd>
+          <dt>STFT / LTFT</dt><dd>Short and long term fuel trims: the ECM's live and learned fueling corrections, in percent.</dd>
+          <dt>Knock retard</dt><dd>Timing the ECM removes after detecting knock.</dd>
+          <dt>Change sheet</dt><dd>Stagline's approved list of edits, with paste-ready grids for your flash tool.</dd>
+        </dl>
+
+        <h2 id="faq">FAQ</h2>
+        <div class="faq">
+          <details><summary>Will my truck still start like stock?</summary><p>That's the goal. Cranking and cold-start tables stay locked, and the simulator scores startability before you approve anything. Reducing idle airflow is the main way a lope tune can hurt hot restarts, so it's capped on Street.</p></details>
+          <details><summary>Is the engine sound accurate?</summary><p>It's a procedural approximation tuned to sound like an open-header V8 with a lumpy cam. It's useful for comparing settings against each other, not for predicting exactly how your engine will sound.</p></details>
+          <details><summary>Does Stagline write to my ECM?</summary><p>Not directly yet. In the preview you export an approved change sheet for HP Tuners or EFILive, or use the mail-in service. Direct J2534 flashing is in development and will keep the same approval and backup steps.</p></details>
+          <details><summary>Is a lope tune emissions-legal?</summary><p>Modifying calibrations on an emissions-controlled street vehicle may violate federal or state law. Many changes are intended for off-road or competition vehicles only. Check the laws where you live. See the <a href="legal.html#emissions">emissions notice</a>.</p></details>
+          <details><summary>Which Bluetooth dongle should I buy?</summary><p>A Bluetooth LE ELM327 such as the OBDLink CX works in Chrome and Edge. “Classic” Bluetooth adapters and iPhone browsers can't connect from a web page. See the <a href="hardware.html">hardware estimator</a>.</p></details>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+<div data-footer></div>
+<script type="module" src="assets/js/site.js"></script>
+</body>
+</html>
