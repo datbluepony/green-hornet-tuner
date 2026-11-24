@@ -144,7 +144,7 @@ export function render(root, ctx) {
       Object.assign(conn, { kind: "demo", name: "Demo engine", vin: null, running: true, buf: [] });
       log("Demo engine started with your current tune.", "ok");
       const s = store.state; const est = (await import("../model.js")).idleEstimate(s.idle, s.project.cam);
-      audio.set({ rpm: s.idle.rpmPark, lope: est.lope, lopeHz: est.lopeHz, swing: est.swing, exhaust: s.project.exhaust === "open" ? "open" : "muffled" });
+      audio.set({ rpm: s.idle.rpmPark, gear: "park", lope: est.lope, lopeHz: est.lopeHz, swing: est.swing, exhaust: s.project.exhaust === "open" ? "open" : "muffled", params: { sparkIdle: s.idle.sparkIdle, stability: s.idle.stability, airflow: s.idle.airflow, enrich: s.idle.enrich } });
       conn.timer = setInterval(() => push(conn.demo.sample()), 100);
       shell();
       return;

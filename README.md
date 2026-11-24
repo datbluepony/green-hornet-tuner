@@ -19,7 +19,7 @@ A guardrailed, browser-based tuning studio for GM LS engines (Gen IV E38 trucks 
 | `legal.html` | Disclaimer, terms, assumption of risk & release, emissions notice, mail-in terms, privacy, refunds |
 
 ### Studio features
-- Idle & lope calibration: 6 parameters, presets, recommended band + hard limits per plan, live predicted outcome, synthesized engine sound.
+- Idle & lope calibration: 6 parameters, presets, recommended band + hard limits per plan, live predicted outcome, and an engine sound rebuilt from a real recording of the owner's open-header 5.3 (stage 3 truck cam). The recording is sliced into phase-aligned engine cycles (`assets/audio/idle-bank.wav`) and re-sequenced by RPM, lope, spark, stability, airflow, fueling and Park/Drive.
 - Interactive 3D fuel (VE) and spark maps (Three.js) linked to a grid editor: drag-select, nudge, set, smooth, reset, value or change-vs-stock coloring.
 - Tune simulator: a 48 s drive cycle (crank → idle → Drive + A/C → cruise → WOT → decel) scoring startability, idle quality, stall margin, cruise fueling, WOT AFR and knock margin.
 - Bluetooth LE / USB ELM327 connection (Web Bluetooth / Web Serial, Chrome & Edge). **Read-only by design**: only Mode 01/03/09 and AT commands are allowed. Idle and driving tests produce a readiness report: safe to do, needs attention, not recommended, doesn't need.

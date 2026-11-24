@@ -80,7 +80,7 @@ function render() {
   document.getElementById("r-stall").textContent = est.stallRisk < 0.2 ? "High" : est.stallRisk < 0.45 ? "OK" : "Low";
   const hl = document.getElementById("hud-lope"); if (hl) hl.textContent = Math.round(est.lope * 100);
   const hr = document.getElementById("hud-rpm"); if (hr) hr.textContent = Math.round(params.rpmPark);
-  audio.set({ rpm: params.rpmPark, lope: est.lope, lopeHz: est.lopeHz, swing: est.swing });
+  audio.set({ rpm: params.rpmPark, lope: est.lope, lopeHz: est.lopeHz, swing: est.swing, params: { sparkIdle: params.sparkIdle, stability: params.stability, airflow: params.airflow, enrich: params.enrich } });
   document.querySelectorAll("[data-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.preset === presetFor(slider.value))));
 }
 function presetFor(v) { v = +v; return v < 20 ? "smooth" : v < 75 ? "mild" : "aggressive"; }

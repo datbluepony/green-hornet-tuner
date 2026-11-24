@@ -16,6 +16,7 @@ export function render(root, ctx) {
   let preview = { ...store.state.idle };
   let raf = 0, t0 = performance.now();
   let selfCommit = false;
+  let listenGear = "park";
 
   const draw = () => {
     const s = store.state;
@@ -30,6 +31,10 @@ export function render(root, ctx) {
           <p>Shape how the cam sounds at idle while keeping cranking, cold start and in-gear manners intact. Pick a preset, then fine-tune. Every change shows its predicted effect before you commit.</p>
         </div>
         <div class="tools">
+          <div class="seg" role="group" aria-label="Listen in gear">
+            <button data-gear="park" aria-pressed="${listenGear === "park"}">Park</button>
+            <button data-gear="drive" aria-pressed="${listenGear === "drive"}">In gear</button>
+          </div>
           <div class="seg" role="group" aria-label="Exhaust sound">
             <button data-exh="open" aria-pressed="${audio.exhaust !== "muffled"}">Open headers</button>
             <button data-exh="muffled" aria-pressed="${audio.exhaust === "muffled"}">Muffled</button>
@@ -92,6 +97,7 @@ export function render(root, ctx) {
     }));
     root.querySelector("#reset-idle").addEventListener("click", () => store.update((s) => (s.idle = store.baselineIdle()), "Reset idle to baseline"));
     root.querySelector("#snd").addEventListener("click", async () => { if (audio.running) audio.stop(); else { await audio.start(); } draw(); });
+    root.querySelectorAll("[data-gear]").forEach((b) => b.addEventListener("click", () => { listenGear = b.dataset.gear; root.querySelectorAll("[data-gear]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); updatePreview(); }));
     root.querySelectorAll("[data-exh]").forEach((b) => b.addEventListener("click", () => { audio.set({ exhaust: b.dataset.exh }); root.querySelectorAll("[data-exh]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }));
     const rev = root.querySelector("#rev");
     const pct = () => rev.style.setProperty("--pct", `${((rev.value - 5000) / 1400) * 100}%`); pct();
@@ -104,7 +110,8 @@ export function render(root, ctx) {
     const s = store.state;
     const est = idleEstimate(preview, s.project.cam);
     const baseEst = idleEstimate(store.baselineIdle(), s.project.cam);
-    audio.set({ rpm: preview.rpmPark, lope: est.lope, lopeHz: est.lopeHz, swing: est.swing });
+    const drive = listenGear === "drive";
+    audio.set({ rpm: drive ? preview.rpmDrive : preview.rpmPark, gear: listenGear, lope: est.lope, lopeHz: est.lopeHz, swing: drive ? est.swing * 0.8 : est.swing, params: { sparkIdle: preview.sparkIdle, stability: preview.stability, airflow: preview.airflow, enrich: preview.enrich } });
     const lv = root.querySelector("#lope-v"); if (lv) lv.textContent = `${Math.round(est.lope * 100)}%`;
     const lm = root.querySelector("#lope-m"); if (lm) lm.style.setProperty("--p", `${est.lope * 100}%`);
     const items = [
@@ -130,7 +137,7 @@ export function render(root, ctx) {
     const cv = root.querySelector("#trace");
     if (!cv) return;
     const est = idleEstimate(preview, store.state.project.cam);
-    drawTrace(cv, { t: (performance.now() - t0) / 1000, base: preview.rpmPark, est, window: 5, live: audio.running });
+    drawTrace(cv, { t: (performance.now() - t0) / 1000, base: listenGear === "drive" ? preview.rpmDrive : preview.rpmPark, est, window: 5, live: audio.running });
   };
 
   draw();
