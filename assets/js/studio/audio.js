@@ -1,95 +1,69 @@
 // ==========================================================================
-// Engine sound built from a real recording.
+// Engine sound from the real recording.
 //
-// The source is the owner's Wrangler idling (Gen IV 5.3, stage 3 truck cam,
-// open headers) at ~803 rpm. It was sliced offline into phase-aligned engine
-// cycles (2 crank turns = 8 firing pulses each) plus one phase-averaged
-// "smooth" cycle. At runtime the cycles are re-sequenced as grains:
+// Source: the owner's Wrangler idling (Gen IV 5.3, stage 3 truck cam, open
+// headers), 18 s of stereo joined from two clips, level-ridden, ~803 rpm.
+// Offline we marked every firing pulse (8 per engine cycle, even 90° crank
+// spacing) and which cycles are the strong "boom" of the lope.
 //
-//   rpm            → playback rate of each cycle (pitch + firing rate)
-//   lope           → scales the truck's own strong/weak cycle pattern (more)
-//                    or blends in the averaged smooth cycle (less)
-//   idle spark     → retard adds exhaust crack and lazier, lumpier cycles
-//   stability      → cycle-to-cycle rpm wander and surge depth
-//   airflow        → idle firmness; removing air adds stumbles
-//   fueling        → low-end fullness
-//   park / drive   → base rpm + converter load (deeper, heavier)
-//   exhaust        → open (as recorded) or muffled
-//
+// "As recorded" → the raw recording, unprocessed (bit-for-bit, just volume).
+// Anything else  → pitch-synchronous overlap-add (PSOLA) of the real pulses:
+//   rpm          spaces the same pulses closer/further apart without changing
+//                their pitch (lower idle = more room between booms)
+//   more lope    the soft cycle between booms slows and drops back, so the
+//                strong booms stand apart: boom … boom, never random
+//   less lope    evens out the gap and loudness between cycles
+//   in gear      converter load: target in-gear rpm, a bit less lope
+//   fueling / spark / exhaust  gentle tone changes; neutral at the recording
 // If the recording can't load, the procedural synth is used instead.
 // ==========================================================================
 
-const BANK = new URL("../../audio/idle-bank.wav", import.meta.url);
-const META = new URL("../../audio/idle-bank.json", import.meta.url);
+const SRC = new URL("../../audio/idle-recorded.wav", import.meta.url);
+const META = new URL("../../audio/idle-recorded.json", import.meta.url);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-// The recording = the "As recorded" preset (see model.js LOPE_PRESETS.recorded).
-const REF_RPM = 800;
-const REF_LOPE = 0.515;
 
-let bankPromise = null;
-async function loadBank(ctx) {
-  if (!bankPromise) {
-    bankPromise = (async () => {
-      const [meta, bytes] = await Promise.all([fetch(META).then((r) => r.json()), fetch(BANK).then((r) => { if (!r.ok) throw new Error("bank"); return r.arrayBuffer(); })]);
-      return { meta, bytes };
-    })();
-  }
-  const { meta, bytes } = await bankPromise;
-  const buf = await ctx.decodeAudioData(bytes.slice(0));
-  const data = buf.getChannelData(0);
-  const G = meta.grainLen + meta.tail;
-  const grains = [];
-  for (let k = 0; k < meta.count; k++) {
-    const b = ctx.createBuffer(1, G, buf.sampleRate);
-    b.copyToChannel(data.subarray(k * G, (k + 1) * G), 0);
-    grains.push(b);
-  }
-  // real grains sorted by lumpiness (index 0 is the smooth average)
-  const order = meta.lump.map((l, i) => [l, i]).slice(1).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
-  return { meta, grains, smooth: grains[0], order, sr: buf.sampleRate };
-}
+// The recording corresponds to LOPE_PRESETS.recorded in model.js.
+export const REF = { rpm: 800, lope: 0.515, sparkIdle: 18, stability: 75, airflow: 0.5, enrich: 1 };
 
-/** Deterministic idle surge shape shared with the RPM trace. */
-function surge(t, hz) {
-  return Math.sin(2 * Math.PI * hz * t) * 0.62 + Math.sin(2 * Math.PI * hz * 2.07 * t + 1.3) * 0.25 + Math.sin(2 * Math.PI * 7.3 * t) * 0.08;
+const HANN = (() => { const c = new Float32Array(128); for (let i = 0; i < 128; i++) c[i] = Math.sin((Math.PI * i) / 127) ** 2; return c; })();
+
+let srcPromise = null;
+function fetchSource() {
+  if (!srcPromise) srcPromise = Promise.all([fetch(META).then((r) => r.json()), fetch(SRC).then((r) => { if (!r.ok) throw new Error("source"); return r.arrayBuffer(); })]);
+  return srcPromise;
 }
 
 export class EngineAudio {
   constructor() {
-    this.ctx = null;
-    this.running = false;
-    this.mode = "recording"; // or "synth"
-    // public state
-    this.rpm = 800; this.lope = 0.5; this.lopeHz = 1.1; this.swing = 30;
-    this.params = { sparkIdle: 20, stability: 100, airflow: 0, enrich: 0 };
-    this.gear = "park";
-    this.exhaust = "open";
-    this.throttle = 0;
-    this.volume = 0.82;
-    this._seed = 7;
-    this._listeners = new Set();
-    this._liveRpm = 800;
+    this.ctx = null; this.running = false; this.mode = "recording";
+    this.rpm = REF.rpm; this.lope = REF.lope; this.lopeHz = 3.3; this.swing = 20;
+    this.params = { sparkIdle: REF.sparkIdle, stability: REF.stability, airflow: REF.airflow, enrich: REF.enrich };
+    this.gear = "park"; this.exhaust = "open"; this.throttle = 0; this.volume = 0.85;
+    this._listeners = new Set(); this._liveRpm = REF.rpm; this._raw = true;
   }
-
   onFire(fn) { this._listeners.add(fn); return () => this._listeners.delete(fn); }
   get liveRpm() { return this._liveRpm; }
-  _rand() { this._seed = (this._seed * 16807) % 2147483647; return this._seed / 2147483647; }
+
+  /** True when every setting matches the recording, so it plays untouched. */
+  isReference() {
+    const p = this.params;
+    return Math.abs(this.rpm - REF.rpm) < 0.5 && Math.abs(this.lope - REF.lope) < 0.01 && this.gear === "park" && this.exhaust !== "muffled" && this.throttle < 0.01 &&
+      Math.abs(p.sparkIdle - REF.sparkIdle) < 0.01 && Math.abs(p.stability - REF.stability) < 0.5 && Math.abs(p.airflow - REF.airflow) < 0.01 && Math.abs(p.enrich - REF.enrich) < 0.01;
+  }
 
   set(o) {
     if (o.params) { this.params = { ...this.params, ...o.params }; o = { ...o }; delete o.params; }
     Object.assign(this, o);
     this.synth?.set({ rpm: this.rpm, lope: this.lope, lopeHz: this.lopeHz, swing: this.swing, throttle: this.throttle, exhaust: this.exhaust });
-    if (this.ctx && this.mode === "recording") this._tone(this.ctx.currentTime);
+    if (this.ctx && this.running && this.mode === "recording") { this._tone(this.ctx.currentTime); this._route(this.ctx.currentTime); }
   }
 
   async start() {
     if (this.running) return;
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      try {
-        this.bank = await loadBank(this.ctx);
-        this._graph(this.ctx, this.ctx.destination);
-      } catch (e) {
+      try { await this._load(this.ctx); this._graph(this.ctx, this.ctx.destination); }
+      catch (e) {
         this.mode = "synth";
         const { SynthEngineAudio } = await import("./audio-synth.js");
         this.synth = new SynthEngineAudio();
@@ -98,13 +72,20 @@ export class EngineAudio {
     }
     if (this.mode === "synth") { await this.synth.start(); this.running = true; return; }
     if (this.ctx.state === "suspended") await this.ctx.resume();
+    const t = this.ctx.currentTime + 0.05;
     this.running = true;
-    this._next = this.ctx.currentTime + 0.06;
     this._liveRpm = this.rpm;
-    this._t0 = this.ctx.currentTime;
-    this._tone(this.ctx.currentTime);
-    this.master.gain.cancelScheduledValues(this.ctx.currentTime);
-    this.master.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.2);
+    this._pos = this._pos || 0;
+    this._raw = this.isReference();
+    this._startRaw(this.ctx, t, this._pos);
+    this.rawGain.gain.cancelScheduledValues(t); this.psolaGain.gain.cancelScheduledValues(t);
+    this.rawGain.gain.setValueAtTime(this._raw ? 1 : 0, t);
+    this.psolaGain.gain.setValueAtTime(this._raw ? 0 : 1, t);
+    this._j = this._epochAt(this._pos); this._T = t;
+    this._tone(t);
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.setValueAtTime(0, t);
+    this.master.gain.linearRampToValueAtTime(this.volume, t + 0.35);
     this._timer = setInterval(() => this._pump(this.ctx, this.ctx.currentTime + 0.25), 25);
   }
 
@@ -114,103 +95,133 @@ export class EngineAudio {
     if (this.mode === "synth") { this.synth.stop(); return; }
     clearInterval(this._timer);
     const t = this.ctx.currentTime;
+    this._pos = this._raw ? this._rawPos(t) : this.meta.epochs[this._j] || 0;
     this.master.gain.cancelScheduledValues(t);
-    this.master.gain.setTargetAtTime(0, t, 0.1);
+    this.master.gain.setValueAtTime(this.master.gain.value, t);
+    this.master.gain.linearRampToValueAtTime(0, t + 0.2);
+    const s = this.rawSrc; setTimeout(() => { try { s?.stop(); } catch {} }, 300);
   }
 
-  /* ------------------------------------------------------------- graph */
+  /* ------------------------------------------------------------- setup */
+  async _load(ctx) {
+    const [meta, bytes] = await fetchSource();
+    this.meta = meta;
+    this.buf = await ctx.decodeAudioData(bytes.slice(0));
+    this.frames = this.buf.length;
+    this.lvMean = meta.level.reduce((a, b) => a + b, 0) / meta.level.length;
+  }
+
   _graph(ctx, dest) {
+    this.master = ctx.createGain(); this.master.gain.value = 0;
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -1; limiter.knee.value = 0; limiter.ratio.value = 20; limiter.attack.value = 0.002; limiter.release.value = 0.1;
+    this.master.connect(limiter); limiter.connect(dest);
+    // raw path: straight to master
+    this.rawGain = ctx.createGain(); this.rawGain.connect(this.master);
+    // resynthesis path: tone shaping, neutral at the recorded settings
     this.bus = ctx.createGain();
     this.low = ctx.createBiquadFilter(); this.low.type = "lowshelf"; this.low.frequency.value = 110;
     this.crack = ctx.createBiquadFilter(); this.crack.type = "peaking"; this.crack.frequency.value = 2200; this.crack.Q.value = 0.5;
-    this.lpf = ctx.createBiquadFilter(); this.lpf.type = "lowpass"; this.lpf.Q.value = 0.5;
-    this.hpf = ctx.createBiquadFilter(); this.hpf.type = "highpass"; this.hpf.frequency.value = 24;
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -6; comp.knee.value = 10; comp.ratio.value = 2; comp.attack.value = 0.005; comp.release.value = 0.12;
-    this.master = ctx.createGain(); this.master.gain.value = 0;
-    this.bus.connect(this.low); this.low.connect(this.crack); this.crack.connect(this.lpf); this.lpf.connect(this.hpf); this.hpf.connect(comp); comp.connect(this.master); this.master.connect(dest);
+    this.lpf = ctx.createBiquadFilter(); this.lpf.type = "lowpass"; this.lpf.Q.value = 0.5; this.lpf.frequency.value = 20000;
+    this.psolaGain = ctx.createGain();
+    this.bus.connect(this.low); this.low.connect(this.crack); this.crack.connect(this.lpf); this.lpf.connect(this.psolaGain); this.psolaGain.connect(this.master);
+  }
+
+  _startRaw(ctx, t, pos) {
+    try { this.rawSrc?.stop(t); } catch {}
+    const s = ctx.createBufferSource();
+    s.buffer = this.buf; s.loop = true; s.loopStart = 0; s.loopEnd = this.buf.duration;
+    s.connect(this.rawGain);
+    s.start(t, (pos % this.frames) / this.buf.sampleRate);
+    this.rawSrc = s; this._rawT0 = t; this._rawPos0 = pos;
+  }
+  _rawPos(t) { return (this._rawPos0 + Math.max(0, t - this._rawT0) * this.buf.sampleRate) % this.frames; }
+  _epochAt(pos) { const E = this.meta.epochs; for (let i = 0; i < E.length; i++) if (E[i] >= pos) return i; return 0; }
+
+  /** Crossfade between the raw recording and the resynthesis. */
+  _route(t) {
+    const ref = this.isReference();
+    if (ref === this._raw) return;
+    this._raw = ref;
+    const ramp = (g, v) => { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(v, t + 0.12); };
+    if (ref) {
+      this._startRaw(this.ctx, t, this.meta.epochs[this._j] || 0); // resume where the resynthesis is in the source
+      this.rawGain.gain.cancelScheduledValues(t); this.rawGain.gain.setValueAtTime(0, t);
+      ramp(this.rawGain, 1); ramp(this.psolaGain, 0);
+    } else {
+      this._j = this._epochAt(this._rawPos(t)); this._T = t + 0.01;
+      ramp(this.rawGain, 0); ramp(this.psolaGain, 1);
+    }
   }
 
   _tone(t) {
     const p = this.params, open = this.exhaust !== "muffled", drive = this.gear === "drive";
-    const retard = clamp(18 - p.sparkIdle, -4, 10);
-    const chop = Math.max(0, clamp(this.lope, 0, 1) - REF_LOPE - (drive ? 0.2 : 0));
-    this.low.gain.setTargetAtTime(clamp((p.enrich - 1) * 1.3 + (drive ? 2.5 : 0) + chop * 6, -3, 9), t, 0.08);
-    this.crack.gain.setTargetAtTime(open ? clamp(retard * 0.4, -2, 3) : -8, t, 0.08);
-    this.lpf.frequency.setTargetAtTime(open ? 15000 - p.enrich * 600 - (drive ? 1500 : 0) + this.throttle * 6000 : 300 + this.throttle * 900, t, 0.08);
-    this.bus.gain.setTargetAtTime((open ? 1 : 0.75) * (1 + p.airflow * 0.015 + (drive ? 0.1 : 0)), t, 0.08);
+    const more = Math.max(0, this.lope - REF.lope);
+    const to = (param, v) => param.setTargetAtTime(v, t, 0.08);
+    to(this.low.gain, clamp((p.enrich - REF.enrich) * 1.2 + (drive ? 1.2 : 0) + more * 3, -3, 6));
+    to(this.crack.gain, open ? clamp((REF.sparkIdle - p.sparkIdle) * 0.35, -2, 2.5) : -8);
+    to(this.lpf.frequency, open ? 20000 - Math.max(0, p.enrich - REF.enrich) * 900 - (drive ? 2500 : 0) : 320 + this.throttle * 900);
+    to(this.bus.gain, open ? 1 : 0.8);
   }
 
-  /* -------------------------------------------------------- scheduling */
-  // Reference = the recording itself: cycles play in recorded order at their
-  // recorded rpm and loudness. Settings scale the truck's own deviations
-  // (E > 1 = more lope in the same rhythm, E < 1 = smoother).
+  /* ------------------------------------------------------ resynthesis */
   _pump(ctx, until) {
-    const { meta, grains, smooth, sr } = this.bank;
-    const p = this.params;
-    const n = meta.count - 1; // real cycles 1..n
-    const lvMean = meta.level.slice(1).reduce((a, b) => a + b, 0) / n;
-    while (this._next < until) {
-      const t = this._next;
-      if (!this._k || this._k > n) this._k = 2; // loop 2..n keeps the strong/weak alternation intact
-      const k = this._k++;
-      const drive = this.gear === "drive";
-      let dL = clamp(this.lope, 0, 1) - REF_LOPE - (drive ? 0.2 : 0);
-      const E = dL >= 0 ? 1 + dL * 3.6 : clamp(1 + dL * 3.2, 0.15, 1);
+    if (this._raw) { this._T = Math.max(this._T || 0, ctx.currentTime); return; }
+    const { epochs: E, strong, level } = this.meta;
+    const sr = this.buf.sampleRate, N = E.length, F = this.frames;
+    const drive = this.gear === "drive";
+    while (this._T < until) {
+      const j = this._j % N;
+      const e = E[j];
+      const Pp = ((e - E[(j - 1 + N) % N]) % F + F) % F || 824;
+      const Pn = ((E[(j + 1) % N] - e) % F + F) % F || 824;
       const idleish = clamp(1 - this.throttle * 3, 0, 1);
-      const target = this.rpm + this.throttle * 2200;
-      this._liveRpm += (target - this._liveRpm) * (this.throttle > (this._lastThr || 0) ? 0.5 : 0.3);
+      const target = this.rpm + this.throttle * 2400;
+      this._liveRpm += (target - this._liveRpm) * (this.throttle > (this._lastThr || 0) ? 0.08 : 0.04);
       this._lastThr = this.throttle;
-      // the truck's own cycle-to-cycle rpm and loudness pattern, scaled
-      const devR = (meta.cycleRpm[k] / meta.rpm - 1) * (idleish ? E : 0.3);
-      const devL = meta.level[k] / lvMean;
-      let rate = (this._liveRpm / REF_RPM) * (1 + devR);
-      let gain = Math.pow(devL, idleish ? E : 0.5);
-      // more chop than the recording: deepen the truck's own strong/weak cadence
-      const chop = Math.max(0, dL) * idleish;
-      if (chop > 0) {
-        const strong = devL >= 1;
-        rate *= 1 + (strong ? 1 : -1) * chop * 0.1;            // up to ~±80 rpm in rhythm
-        if (!strong && k % 4 === 1) { gain *= 1 - chop * 1.5; rate *= 1 - chop * 0.06; } // lazy cycle every 2nd beat
-      }
-      // lean idle airflow: occasional soft sag (no rebound pop)
-      if (p.airflow < 0 && idleish && this._rand() < -p.airflow * 0.02) { gain *= 0.88; rate *= 0.975; }
-      rate = clamp(rate, 0.55, 2.8);
-      const smoothMix = 0; // blending the averaged cycle caused beating; smoothing is done by scaling deviations
-      const dur = (meta.grainLen + meta.tail) / sr / rate;
-      const fade = meta.tail / sr / rate;
-      this._play(ctx, grains[k], t, rate, gain * (1 - smoothMix), dur, fade);
-      if (smoothMix > 0.01) this._play(ctx, smooth, t, rate, smoothMix, dur, fade);
-      this._next = t + meta.grainLen / sr / rate;
-      if (this._listeners.size) { const d = Math.max(0, (t - ctx.currentTime) * 1000); setTimeout(() => this._listeners.forEach((f) => f({ rpm: rate * REF_RPM, gain })), d); }
+      const dL = (this.lope - REF.lope - (drive ? 0.12 : 0)) * idleish;
+      const more = Math.max(0, dL), less = Math.max(0, -dL);
+      const isStrong = strong[j] === 1;
+      // more lope: the soft cycle between booms slows and drops back
+      const stretch = isStrong ? 1 - more * 0.06 : 1 + more * 0.55;
+      let gain = isStrong ? 1 + more * 0.12 : 1 - more * 0.45;
+      // less lope: pull cycles toward the average loudness
+      gain *= Math.pow(this.lvMean / level[j], clamp(less * 2.2, 0, 1));
+      const spacing = Pn * (REF.rpm / Math.max(350, this._liveRpm)) * stretch;
+      const rate = this._liveRpm > 1100 ? Math.pow(this._liveRpm / 1100, 0.55) : 1;
+      gain *= Math.min(1, Math.sqrt(spacing / Pn));
+      const before = Pp / sr / rate, dur = (Pp + Pn) / sr / rate;
+      const t0 = this._T - before;
+      if (t0 + dur > ctx.currentTime) this._grain(ctx, (((e - Pp) % F) + F) % F / sr, Math.max(ctx.currentTime || 0, t0), rate, gain, dur);
+      this._T += spacing / sr;
+      this._j = (j + 1) % N;
+      if (this._listeners.size) { const d = Math.max(0, (this._T - ctx.currentTime) * 1000); setTimeout(() => this._listeners.forEach((f) => f({ strong: isStrong, gain })), d); }
     }
   }
 
-  _play(ctx, buffer, t, rate, gain, dur, fade) {
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.playbackRate.value = rate;
+  _grain(ctx, offset, t, rate, gain, dur) {
+    const s = ctx.createBufferSource();
+    s.buffer = this.buf; s.loop = true; s.loopStart = 0; s.loopEnd = this.buf.duration;
+    s.playbackRate.value = rate;
     const g = ctx.createGain();
+    const curve = new Float32Array(HANN.length); for (let i = 0; i < curve.length; i++) curve[i] = HANN[i] * gain;
     g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(gain, t + fade);
-    g.gain.setValueAtTime(gain, t + dur - fade);
-    g.gain.linearRampToValueAtTime(0, t + dur);
-    src.connect(g); g.connect(this.bus);
-    src.start(t); src.stop(t + dur + 0.01);
+    g.gain.setValueCurveAtTime(curve, t, dur);
+    s.connect(g); g.connect(this.bus);
+    s.start(t, offset, dur * rate + 0.005);
   }
 
-  /** Render offline (for testing / export). Returns an AudioBuffer. */
-  async renderOffline(seconds = 6, sampleRate = 44100) {
-    const ctx = new OfflineAudioContext(1, Math.ceil(seconds * sampleRate), sampleRate);
-    this.bank = await loadBank(ctx);
-    const save = { bus: this.bus, low: this.low, crack: this.crack, lpf: this.lpf, hpf: this.hpf, master: this.master };
+  /** Offline render for testing. */
+  async renderOffline(seconds = 8, sampleRate = 44100) {
+    const ctx = new OfflineAudioContext(2, Math.ceil(seconds * sampleRate), sampleRate);
+    await this._load(ctx);
     this._graph(ctx, ctx.destination);
     this.master.gain.value = this.volume;
     this._tone(0);
-    this._next = 0.0; this._t0 = 0; this._k = 2; this._liveRpm = this.rpm;
-    this._pump(ctx, seconds);
-    const out = await ctx.startRendering();
-    Object.assign(this, save);
-    return out;
+    this._raw = this.isReference();
+    this._liveRpm = this.rpm; this._j = 0; this._T = 0.03;
+    if (this._raw) { this._startRaw(ctx, 0, 0); this.rawGain.gain.value = 1; this.psolaGain.gain.value = 0; }
+    else { this.rawGain.gain.value = 0; this.psolaGain.gain.value = 1; this._pump(ctx, seconds); }
+    return ctx.startRendering();
   }
 }

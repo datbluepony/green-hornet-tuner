@@ -100,10 +100,10 @@ export function defaultIdle(camKey = "stage3") {
 
 export const LOPE_PRESETS = {
   smooth: { label: "Smooth", desc: "Quiet and very stable. Hides most of the cam.", v: { rpmPark: 825, rpmDrive: 760, sparkIdle: 21, stability: 100, airflow: 1, enrich: 0 } },
-  recorded: { label: "As recorded", desc: "Stage 3 truck cam, open headers, ~803 rpm. The real recording.", v: { rpmPark: 800, rpmDrive: 750, sparkIdle: 18, stability: 75, airflow: 0.5, enrich: 1 } },
-  choppy: { label: "Choppy", desc: "Same rhythm, harder hits. Still stock-like manners.", v: { rpmPark: 790, rpmDrive: 745, sparkIdle: 16.5, stability: 60, airflow: 1, enrich: 1.5 } },
-  aggressive: { label: "Aggressive", desc: "Deep lope with a clear lazy beat.", v: { rpmPark: 780, rpmDrive: 740, sparkIdle: 15, stability: 45, airflow: 1.5, enrich: 2 } },
-  cammed: { label: "Cammed out", desc: "Most chop the Street limits allow. Sounds a cam size bigger.", v: { rpmPark: 770, rpmDrive: 735, sparkIdle: 13.5, stability: 30, airflow: 2, enrich: 2.5 } },
+  recorded: { label: "As recorded", desc: "The real truck: stage 3 truck cam, open headers, ~803 rpm.", v: { rpmPark: 800, rpmDrive: 750, sparkIdle: 18, stability: 75, airflow: 0.5, enrich: 1 } },
+  choppy: { label: "A bit more", desc: "A little more lope. Same rhythm, slightly slower.", v: { rpmPark: 790, rpmDrive: 745, sparkIdle: 16.5, stability: 60, airflow: 1, enrich: 1.5 } },
+  aggressive: { label: "Lopey", desc: "Boom … boom. More space between the hits.", v: { rpmPark: 780, rpmDrive: 740, sparkIdle: 15, stability: 45, airflow: 1.5, enrich: 2 } },
+  cammed: { label: "Cammed out", desc: "Biggest lope the Street limits allow. Sounds a cam size up.", v: { rpmPark: 770, rpmDrive: 735, sparkIdle: 13.5, stability: 30, airflow: 2, enrich: 2.5 } },
   // only reachable with Advanced
   wild: { label: "Show", desc: "Beyond Street limits. Heavier in gear, hotter exhaust.", advanced: true, v: { rpmPark: 750, rpmDrive: 725, sparkIdle: 11, stability: 15, airflow: 3, enrich: 3 } },
 };
