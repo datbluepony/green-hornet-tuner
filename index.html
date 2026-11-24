@@ -106,7 +106,7 @@
   .lab-readouts .k { font-family: var(--mono); font-size: .64rem; letter-spacing: .12em; color: var(--text-3); text-transform: uppercase; }
   .lab-readouts .v { font-family: var(--mono); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
   .lab-ctrl { padding: 26px; display: grid; gap: 22px; align-content: start; }
-  .presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
   .preset { text-align: left; padding: 12px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--bg-2); transition: all .2s; display: grid; gap: 2px; }
   .preset b { font-size: .9rem; }
   .preset span { font-size: .74rem; color: var(--text-3); line-height: 1.35; }
@@ -174,7 +174,8 @@
     .proof-item:nth-child(3) { border-left: 0; }
   }
   @media (max-width: 600px) {
-    .steps, .plans, .presets { grid-template-columns: 1fr; }
+    .steps, .plans { grid-template-columns: 1fr; }
+    .presets { grid-template-columns: 1fr 1fr; }
     .lab-readouts { grid-template-columns: 1fr 1fr; }
     .lab-readouts div:nth-child(3) { border-left: 0; }
     .instrument { aspect-ratio: .95; }
@@ -248,7 +249,7 @@
           </div>
           <canvas id="lope-canvas" aria-label="Idle RPM trace"></canvas>
           <div class="lab-readouts">
-            <div><span class="k">Idle</span><span class="v" id="r-rpm">800 ±30</span></div>
+            <div><span class="k">Idle</span><span class="v" id="r-rpm">800 ±26</span></div>
             <div><span class="k">Vacuum</span><span class="v" id="r-map">47 kPa</span></div>
             <div><span class="k">Startability</span><span class="v" id="r-start">100</span></div>
             <div><span class="k">Stall margin</span><span class="v" id="r-stall">High</span></div>
@@ -256,14 +257,15 @@
         </div>
         <div class="lab-ctrl">
           <div class="presets" role="group" aria-label="Lope presets">
-            <button class="preset" data-preset="smooth" aria-pressed="false"><b>Smooth</b><span>Quiet, stock-like</span></button>
-            <button class="preset" data-preset="mild" aria-pressed="false"><b>Mild chop</b><span>Noticeable rhythm</span></button>
-            <button class="preset" data-preset="aggressive" aria-pressed="true"><b>Aggressive</b><span>Strong, still safe</span></button>
+            <button class="preset" data-preset="smooth" aria-pressed="false"><b>Smooth</b><span>Hides the cam</span></button>
+            <button class="preset" data-preset="recorded" aria-pressed="true"><b>As recorded</b><span>The real truck</span></button>
+            <button class="preset" data-preset="aggressive" aria-pressed="false"><b>Aggressive</b><span>Deep lazy beat</span></button>
+            <button class="preset" data-preset="cammed" aria-pressed="false"><b>Cammed out</b><span>Street-limit max</span></button>
           </div>
           <div class="big-slider">
             <div class="row"><label class="label" for="lab-lope">Lope intensity</label><span class="val" id="lab-lope-val">58%</span></div>
-            <input id="lab-lope" class="range" type="range" min="0" max="100" value="66">
-            <div class="row dim" style="font-size:.75rem"><span>Smooth</span><span>Street safe band ends at 100</span></div>
+            <input id="lab-lope" class="range" type="range" min="0" max="100" value="25">
+            <div class="row dim" style="font-size:.75rem"><span>Smooth</span><span>Recorded idle ↑ at 25 · Street limit at 100</span></div>
           </div>
           <div class="params" id="lab-params"></div>
           <a class="btn btn-ghost" href="builder.html#idle">Fine-tune every parameter in the Studio

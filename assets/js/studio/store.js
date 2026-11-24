@@ -1,8 +1,8 @@
 // Studio state: tune, undo/redo, auto-backups (localStorage), change diff.
 import { CAMS, defaultIdle, zeros, RPM_AXIS, MAP_AXIS, CYLAIR_AXIS, STOCK_VE, STOCK_SPARK, limitFor, clamp } from "./model.js";
 
-const KEY = "stagline.project.v1";
-const BKEY = "stagline.backups.v1";
+const KEY = "stagline.project.v2";
+const BKEY = "stagline.backups.v2";
 const MAX_BACKUPS = 40;
 
 /* ---------------------------------------------------------------- utils */

@@ -42,9 +42,12 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* ---------------------------------------------------------- Lope Lab */
 const cam = CAMS.stage3;
-const A = LOPE_PRESETS.smooth.v, M = LOPE_PRESETS.mild.v, B = LOPE_PRESETS.aggressive.v;
-function paramsAt(x) { // x 0..1 through smooth → mild → aggressive
-  const [p, q, t] = x < 0.5 ? [A, M, x / 0.5] : [M, B, (x - 0.5) / 0.5];
+// slider stops: smooth → as recorded → choppy → aggressive → cammed out
+const STOPS = ["smooth", "recorded", "choppy", "aggressive", "cammed"].map((k) => LOPE_PRESETS[k].v);
+const POS = { smooth: 0, recorded: 25, aggressive: 75, cammed: 100 };
+function paramsAt(x) {
+  const f = Math.min(STOPS.length - 1.0001, x * (STOPS.length - 1));
+  const i = Math.floor(f), t = f - i, p = STOPS[i], q = STOPS[i + 1];
   const o = {};
   for (const k of Object.keys(p)) o[k] = lerp(p[k], q[k], t);
   return o;
@@ -57,7 +60,7 @@ const canvas = document.getElementById("lope-canvas");
 const playBtn = document.getElementById("lab-play");
 const status = document.getElementById("lab-status");
 const audio = new EngineAudio();
-let params = paramsAt(1), est = idleEstimate(params, cam);
+let params = paramsAt(0.25), est = idleEstimate(params, cam);
 
 function setPct(el) { el.style.setProperty("--pct", `${((el.value - el.min) / (el.max - el.min)) * 100}%`); }
 
@@ -83,13 +86,13 @@ function render() {
   audio.set({ rpm: params.rpmPark, lope: est.lope, lopeHz: est.lopeHz, swing: est.swing, params: { sparkIdle: params.sparkIdle, stability: params.stability, airflow: params.airflow, enrich: params.enrich } });
   document.querySelectorAll("[data-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.preset === presetFor(slider.value))));
 }
-function presetFor(v) { v = +v; return v < 20 ? "smooth" : v < 75 ? "mild" : "aggressive"; }
+function presetFor(v) { v = +v; return v < 12 ? "smooth" : v < 45 ? "recorded" : v < 88 ? "aggressive" : "cammed"; }
 
 if (slider) {
-  slider.value = 100;
+  slider.value = POS.recorded;
   slider.addEventListener("input", render);
   document.querySelectorAll("[data-preset]").forEach((b) => b.addEventListener("click", () => {
-    slider.value = { smooth: 0, mild: 50, aggressive: 100 }[b.dataset.preset];
+    slider.value = POS[b.dataset.preset];
     render();
   }));
   document.querySelectorAll("[data-exh]").forEach((b) => b.addEventListener("click", () => {

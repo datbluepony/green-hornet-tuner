@@ -7,8 +7,8 @@
 // "smooth" cycle. At runtime the cycles are re-sequenced as grains:
 //
 //   rpm            → playback rate of each cycle (pitch + firing rate)
-//   lope           → which real cycles play (lumpy vs. even) and how much of
-//                    the smooth average is mixed in
+//   lope           → scales the truck's own strong/weak cycle pattern (more)
+//                    or blends in the averaged smooth cycle (less)
 //   idle spark     → retard adds exhaust crack and lazier, lumpier cycles
 //   stability      → cycle-to-cycle rpm wander and surge depth
 //   airflow        → idle firmness; removing air adds stumbles
@@ -22,6 +22,9 @@
 const BANK = new URL("../../audio/idle-bank.wav", import.meta.url);
 const META = new URL("../../audio/idle-bank.json", import.meta.url);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+// The recording = the "As recorded" preset (see model.js LOPE_PRESETS.recorded).
+const REF_RPM = 800;
+const REF_LOPE = 0.515;
 
 let bankPromise = null;
 async function loadBank(ctx) {
@@ -119,64 +122,67 @@ export class EngineAudio {
   _graph(ctx, dest) {
     this.bus = ctx.createGain();
     this.low = ctx.createBiquadFilter(); this.low.type = "lowshelf"; this.low.frequency.value = 110;
-    this.crack = ctx.createBiquadFilter(); this.crack.type = "peaking"; this.crack.frequency.value = 1700; this.crack.Q.value = 0.8;
+    this.crack = ctx.createBiquadFilter(); this.crack.type = "peaking"; this.crack.frequency.value = 2200; this.crack.Q.value = 0.5;
     this.lpf = ctx.createBiquadFilter(); this.lpf.type = "lowpass"; this.lpf.Q.value = 0.5;
     this.hpf = ctx.createBiquadFilter(); this.hpf.type = "highpass"; this.hpf.frequency.value = 24;
     const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -10; comp.knee.value = 8; comp.ratio.value = 3; comp.attack.value = 0.005; comp.release.value = 0.12;
+    comp.threshold.value = -6; comp.knee.value = 10; comp.ratio.value = 2; comp.attack.value = 0.005; comp.release.value = 0.12;
     this.master = ctx.createGain(); this.master.gain.value = 0;
     this.bus.connect(this.low); this.low.connect(this.crack); this.crack.connect(this.lpf); this.lpf.connect(this.hpf); this.hpf.connect(comp); comp.connect(this.master); this.master.connect(dest);
   }
 
   _tone(t) {
     const p = this.params, open = this.exhaust !== "muffled", drive = this.gear === "drive";
-    const retard = clamp(18 - p.sparkIdle, -6, 12);
-    this.low.gain.setTargetAtTime(clamp((p.enrich - 1) * 1.3 + (drive ? 2.5 : 0), -3, 9), t, 0.08);
-    this.crack.gain.setTargetAtTime(open ? clamp(retard * 1.1, -4, 9) : -8, t, 0.08);
+    const retard = clamp(18 - p.sparkIdle, -4, 10);
+    const chop = Math.max(0, clamp(this.lope, 0, 1) - REF_LOPE - (drive ? 0.2 : 0));
+    this.low.gain.setTargetAtTime(clamp((p.enrich - 1) * 1.3 + (drive ? 2.5 : 0) + chop * 6, -3, 9), t, 0.08);
+    this.crack.gain.setTargetAtTime(open ? clamp(retard * 0.4, -2, 3) : -8, t, 0.08);
     this.lpf.frequency.setTargetAtTime(open ? 15000 - p.enrich * 600 - (drive ? 1500 : 0) + this.throttle * 6000 : 300 + this.throttle * 900, t, 0.08);
     this.bus.gain.setTargetAtTime((open ? 1 : 0.75) * (1 + p.airflow * 0.015 + (drive ? 0.1 : 0)), t, 0.08);
   }
 
   /* -------------------------------------------------------- scheduling */
+  // Reference = the recording itself: cycles play in recorded order at their
+  // recorded rpm and loudness. Settings scale the truck's own deviations
+  // (E > 1 = more lope in the same rhythm, E < 1 = smoother).
   _pump(ctx, until) {
-    const { meta, grains, smooth, order, sr } = this.bank;
+    const { meta, grains, smooth, sr } = this.bank;
     const p = this.params;
+    const n = meta.count - 1; // real cycles 1..n
+    const lvMean = meta.level.slice(1).reduce((a, b) => a + b, 0) / n;
     while (this._next < until) {
       const t = this._next;
-      const tl = t - (this._t0 || 0);
-      const L = clamp(this.lope, 0, 1);
-      const stab = clamp(p.stability / 100, 0, 1);
-      const base = this.rpm - (this.gear === "drive" ? 0 : 0);
-      // throttle (revs) — rpm follows with lag
-      const target = base + this.throttle * 2200;
+      if (!this._k || this._k > n) this._k = 2; // loop 2..n keeps the strong/weak alternation intact
+      const k = this._k++;
+      const drive = this.gear === "drive";
+      let dL = clamp(this.lope, 0, 1) - REF_LOPE - (drive ? 0.2 : 0);
+      const E = dL >= 0 ? 1 + dL * 3.6 : clamp(1 + dL * 3.2, 0.15, 1);
+      const idleish = clamp(1 - this.throttle * 3, 0, 1);
+      const target = this.rpm + this.throttle * 2200;
       this._liveRpm += (target - this._liveRpm) * (this.throttle > (this._lastThr || 0) ? 0.5 : 0.3);
       this._lastThr = this.throttle;
-      const idleish = clamp(1 - this.throttle * 3, 0, 1);
-      // rpm wander: surge (lope rhythm) + per-cycle jitter that stability correction would catch
-      const jitter = (this._rand() - 0.5) * (1 - stab) * 0.05 * this._liveRpm;
-      let rpm = this._liveRpm + (surge(tl, this.lopeHz) * this.swing * (0.6 + (1 - stab) * 0.6) + jitter) * idleish;
-      // stumble events: lean airflow, heavy retard, low stability
-      const pStumble = idleish * clamp((L - 0.55) * 0.22 + Math.max(0, -p.airflow) * 0.03 + Math.max(0, 14 - p.sparkIdle) * 0.02 + (1 - stab) * 0.04, 0, 0.35);
-      let gain = 1, stumble = false;
-      if (this._afterStumble) { gain = 1.18; this._afterStumble = false; }
-      else if (this._rand() < pStumble) { gain = 0.62; rpm *= 0.965; stumble = true; this._afterStumble = true; }
-      gain *= 1 + surge(tl + 0.13, this.lopeHz) * L * 0.28 * idleish;
-      const rate = clamp(rpm / meta.rpm, 0.55, 2.8);
-
-      // grain choice: lumpier real cycles as lope rises
-      const n = order.length;
-      const centre = clamp(L * 1.15 - 0.1 + (stumble ? 0.25 : 0), 0, 1) * (n - 1);
-      const idx = order[clamp(Math.round(centre + (this._rand() - 0.5) * n * 0.35), 0, n - 1)];
-      const realMix = clamp(0.3 + L * 1.1, 0.3, 1);
-      // restore the recording's natural cycle-to-cycle loudness (scaled by lope)
-      gain *= Math.pow(clamp(meta.level[idx], 0.6, 1.5), 0.4 + L * 0.8);
+      // the truck's own cycle-to-cycle rpm and loudness pattern, scaled
+      const devR = (meta.cycleRpm[k] / meta.rpm - 1) * (idleish ? E : 0.3);
+      const devL = meta.level[k] / lvMean;
+      let rate = (this._liveRpm / REF_RPM) * (1 + devR);
+      let gain = Math.pow(devL, idleish ? E : 0.5);
+      // more chop than the recording: deepen the truck's own strong/weak cadence
+      const chop = Math.max(0, dL) * idleish;
+      if (chop > 0) {
+        const strong = devL >= 1;
+        rate *= 1 + (strong ? 1 : -1) * chop * 0.1;            // up to ~±80 rpm in rhythm
+        if (!strong && k % 4 === 1) { gain *= 1 - chop * 1.5; rate *= 1 - chop * 0.06; } // lazy cycle every 2nd beat
+      }
+      // lean idle airflow: occasional soft sag (no rebound pop)
+      if (p.airflow < 0 && idleish && this._rand() < -p.airflow * 0.02) { gain *= 0.88; rate *= 0.975; }
+      rate = clamp(rate, 0.55, 2.8);
+      const smoothMix = 0; // blending the averaged cycle caused beating; smoothing is done by scaling deviations
       const dur = (meta.grainLen + meta.tail) / sr / rate;
       const fade = meta.tail / sr / rate;
-      this._play(ctx, grains[idx], t, rate, gain * realMix, dur, fade);
-      if (realMix < 0.999) this._play(ctx, smooth, t, rate, gain * (1 - realMix) * 1.05, dur, fade);
-
+      this._play(ctx, grains[k], t, rate, gain * (1 - smoothMix), dur, fade);
+      if (smoothMix > 0.01) this._play(ctx, smooth, t, rate, smoothMix, dur, fade);
       this._next = t + meta.grainLen / sr / rate;
-      if (this._listeners.size) { const d = Math.max(0, (t - ctx.currentTime) * 1000); setTimeout(() => this._listeners.forEach((f) => f({ rpm, gain, stumble })), d); }
+      if (this._listeners.size) { const d = Math.max(0, (t - ctx.currentTime) * 1000); setTimeout(() => this._listeners.forEach((f) => f({ rpm: rate * REF_RPM, gain })), d); }
     }
   }
 
@@ -201,7 +207,7 @@ export class EngineAudio {
     this._graph(ctx, ctx.destination);
     this.master.gain.value = this.volume;
     this._tone(0);
-    this._next = 0.0; this._t0 = 0; this._liveRpm = this.rpm;
+    this._next = 0.0; this._t0 = 0; this._k = 2; this._liveRpm = this.rpm;
     this._pump(ctx, seconds);
     const out = await ctx.startRendering();
     Object.assign(this, save);

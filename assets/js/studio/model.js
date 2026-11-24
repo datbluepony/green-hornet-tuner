@@ -94,22 +94,18 @@ export const limitFor = (key, plan) => GUARDS[key][plan === "advanced" ? "advanc
 
 export function defaultIdle(camKey = "stage3") {
   const big = camFactor(CAMS[camKey] || CAMS.stage3) > 0.6;
-  return {
-    rpmPark: big ? 800 : 650,
-    rpmDrive: big ? 750 : 600,
-    sparkIdle: 20,
-    stability: 100,
-    airflow: 0,
-    enrich: 0,
-  };
+  // Big cams start from the recorded reference idle (owner's stage 3 truck, ~803 rpm).
+  return big ? { ...LOPE_PRESETS.recorded.v } : { rpmPark: 650, rpmDrive: 600, sparkIdle: 20, stability: 100, airflow: 0, enrich: 0 };
 }
 
 export const LOPE_PRESETS = {
-  smooth: { label: "Smooth", desc: "Cam-tune baseline. Quiet, very stable.", v: { rpmPark: 825, rpmDrive: 760, sparkIdle: 21, stability: 100, airflow: 1, enrich: 0 } },
-  mild: { label: "Mild chop", desc: "Noticeable rhythm, stock-like manners.", v: { rpmPark: 800, rpmDrive: 750, sparkIdle: 18, stability: 75, airflow: 0.5, enrich: 1 } },
-  aggressive: { label: "Aggressive", desc: "Strong lope while staying inside the safe band.", v: { rpmPark: 790, rpmDrive: 740, sparkIdle: 16, stability: 50, airflow: 1.5, enrich: 2 } },
+  smooth: { label: "Smooth", desc: "Quiet and very stable. Hides most of the cam.", v: { rpmPark: 825, rpmDrive: 760, sparkIdle: 21, stability: 100, airflow: 1, enrich: 0 } },
+  recorded: { label: "As recorded", desc: "Stage 3 truck cam, open headers, ~803 rpm. The real recording.", v: { rpmPark: 800, rpmDrive: 750, sparkIdle: 18, stability: 75, airflow: 0.5, enrich: 1 } },
+  choppy: { label: "Choppy", desc: "Same rhythm, harder hits. Still stock-like manners.", v: { rpmPark: 790, rpmDrive: 745, sparkIdle: 16.5, stability: 60, airflow: 1, enrich: 1.5 } },
+  aggressive: { label: "Aggressive", desc: "Deep lope with a clear lazy beat.", v: { rpmPark: 780, rpmDrive: 740, sparkIdle: 15, stability: 45, airflow: 1.5, enrich: 2 } },
+  cammed: { label: "Cammed out", desc: "Most chop the Street limits allow. Sounds a cam size bigger.", v: { rpmPark: 770, rpmDrive: 735, sparkIdle: 13.5, stability: 30, airflow: 2, enrich: 2.5 } },
   // only reachable with Advanced
-  wild: { label: "Show (Advanced)", desc: "Maximum chop. Expect a heavier idle in gear.", advanced: true, v: { rpmPark: 760, rpmDrive: 720, sparkIdle: 13, stability: 25, airflow: 2.5, enrich: 3 } },
+  wild: { label: "Show", desc: "Beyond Street limits. Heavier in gear, hotter exhaust.", advanced: true, v: { rpmPark: 750, rpmDrive: 725, sparkIdle: 11, stability: 15, airflow: 3, enrich: 3 } },
 };
 
 /* ---------------------------------------------------- idle estimator */
@@ -128,7 +124,7 @@ export function idleEstimate(p, cam) {
     0.006 * p.airflow;
   const lope = clamp(cf * lopeRaw, 0, 1);
 
-  const swing = 6 + lope * 58 + Math.max(0, 14 - p.sparkIdle) * 2.5; // ± rpm
+  const swing = 4 + lope * 42 + Math.max(0, 14 - p.sparkIdle) * 2.5; // ± rpm (recorded idle ≈ ±20)
   const sparkReserve = p.sparkIdle - 10; // room the ECM has to catch a sag
   const stallRisk = clamp(
     ((700 - p.rpmDrive) / 160) * 0.55 +
@@ -149,7 +145,7 @@ export function idleEstimate(p, cam) {
   const economy = -(p.enrich * 0.6 + Math.max(0, 20 - p.sparkIdle) * 0.35); // % idle fuel use change (neg = more fuel)
   return {
     lope, cf, swing, stallRisk, startability, heat, vacuum, drivability, economy,
-    lopeHz: 0.9 + (p.rpmPark - 700) / 400, // perceived lope rhythm
+    lopeHz: p.rpmPark / 240, // strong/weak cadence: one beat per two engine cycles (recorded: 3.3 Hz)
   };
 }
 
@@ -158,7 +154,7 @@ export function idleRpmAt(t, base, est) {
   const L = est.lope;
   const f = est.lopeHz;
   const a = est.swing;
-  const lope = Math.sin(2 * Math.PI * f * t) * 0.62 + Math.sin(2 * Math.PI * f * 2.07 * t + 1.3) * 0.25 + Math.sin(2 * Math.PI * 7.3 * t) * 0.08;
+  const lope = Math.sin(2 * Math.PI * f * t) * 0.7 + Math.sin(2 * Math.PI * 0.37 * t + 1.3) * 0.22 + Math.sin(2 * Math.PI * f * 0.5 * t) * 0.08 * L;
   const sharp = Math.sign(lope) * Math.pow(Math.abs(lope), 1 - L * 0.5);
   return base + a * sharp;
 }

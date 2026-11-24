@@ -103,7 +103,7 @@ body.studio { overflow: hidden; background: var(--bg); }
 .meter::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(90deg, transparent var(--p, 50%), rgba(7,9,6,.82) var(--p, 50%)); }
 .meter .mk { position: absolute; top: -5px; width: 3px; height: 22px; border-radius: 2px; background: #fff; left: var(--p, 50%); transform: translateX(-50%); z-index: 1; box-shadow: 0 0 0 3px rgba(0,0,0,.45); }
 
-.presetbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.presetbar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .presetbar button { text-align: left; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--surface); display: grid; gap: 3px; transition: all .15s; }
 .presetbar button b { font-size: .92rem; }
 .presetbar button span { font-size: .76rem; color: var(--text-3); line-height: 1.35; }
